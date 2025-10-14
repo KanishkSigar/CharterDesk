@@ -1,0 +1,31 @@
+body {
+  font-family: Arial, sans-serif;
+  max-width: 700px;
+  margin: 40px auto;
+  background: #fafafa;
+  padding: 20px;
+}
+h2 { text-align: center; color: #333; }
+label { display: block; margin-top: 12px; font-weight: bold; }
+input, select, textarea {
+  width: 100%;
+  padding: 8px;
+  margin-top: 5px;
+  box-sizing: border-box;
+}
+button {
+  margin-top: 15px;
+  padding: 8px 14px;
+  background-color: #0b6fa4;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+button:hover { background-color: #095a84; }
+#result {
+  margin-top: 20px;
+  padding: 10px;
+  background: #fff;
+  border: 1px solid #ccc;
+}
