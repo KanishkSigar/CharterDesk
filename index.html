@@ -3,10 +3,10 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>IME Negotiation — Chat (Fixed Casts + Index Fix)</title>
+<title>IME Negotiation — Chat (Realtime Final)</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
-  :root{ --bg:#f7f8fb; --panel:#ffffff; --line:#e8ecf1; --muted:#6b7280; --ink:#0f172a; --brand:#0b6fa4; --brand-2:#095a84; --me:#e6f4ff; }
+  :root{ --bg:#f6f7fb; --panel:#ffffff; --line:#e8ecf1; --muted:#6b7280; --ink:#0f172a; --brand:#0b6fa4; --brand-2:#095a84; --me:#e6f4ff; }
   *{box-sizing:border-box}
   html,body{height:100%}
   body{margin:0;font-family:Inter,system-ui,Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -60,7 +60,7 @@
 <div class="wrap">
   <div class="top">
     <div class="brand"><div class="logo"></div><h1>IME Negotiation Assistant</h1></div>
-    <small>welcome! start new or join by UUID</small>
+    <small>welcome! start new or join by uuid</small>
   </div>
   <div class="main">
     <aside class="left panel">
@@ -128,6 +128,18 @@ let threadUuid = null;
 let offersCache = [];
 let agreedFields = new Set();
 let answers = {};
+let pollTimer = null;
+let lastVersion = 0;
+
+function formatOffer(off){
+  const d = off.data || {};
+  const map = {
+    vessel_name:'Vessel', cargo_type:'Cargo', quantity_tol:'Qty', load_port:'Load Port', disch_port:'Disch Port',
+    laycan_start:'Laycan From', laycan_end:'Laycan To', freight:'Freight', demurrage:'Demurrage', disch_rate:'Disch Rate', load_rate:'Load Rate'
+  };
+  const lines = Object.keys(map).filter(k=>d[k]).map(k=>`• <b>${map[k]}</b>: ${escapeHtml(d[k])}`).join('<br>');
+  return `<b>v${off.version}</b> by ${escapeHtml(off.party)} (${escapeHtml(off.role)})<br>${lines || '<i>(no visible fields)</i>'}`;
+}
 
 const QUESTIONS = [
   {id:'vessel_name',label:'Vessel Name / TBN',type:'text',section:'Role & Vessel'},
@@ -188,26 +200,24 @@ async function createThread(){
   if(!created_by){ toast('enter your name first'); return; }
   const fd = new FormData(); fd.append('created_by', created_by); fd.append('title','Negotiation');
   try{ const r = await fetch('create_thread.php',{method:'POST',body:fd}); const j = await r.json();
-    if(j.status==='success'){ threadUuid=j.thread_uuid; $('#threadInfo').textContent='thread: '+threadUuid; addBot('new thread created 🎉 now click <b>Send Firm Offer</b>'); offersCache=[]; agreedFields=new Set(); renderAgreedPanel(); renderOffersList(); }
+    if(j.status==='success'){ threadUuid=j.thread_uuid; $('#threadInfo').textContent='thread: '+threadUuid; addBot('new thread created 🎉 now click <b>Send Firm Offer</b>'); offersCache=[]; agreedFields=new Set(); renderAgreedPanel(); renderOffersList(); lastVersion = 0; startPolling(); }
     else toast('create failed: '+(j.message||'unknown error'));
   }catch(e){ toast('server error'); }
 }
 
 async function joinThreadByUuid(){
   const uuid = $('#uuidInput').value.trim(); if(!uuid){ toast('enter a uuid'); return; }
-  threadUuid = uuid; $('#threadInfo').textContent = 'thread: '+threadUuid; await loadThread(); addBot('joined thread. you can counter an offer or send a new one.');
+  threadUuid = uuid; $('#threadInfo').textContent = 'thread: '+threadUuid; await loadThread();
+  const versions = offersCache.map(o=>o.version); lastVersion = versions.length? Math.max(...versions):0; startPolling();
+  addBot('joined thread. you can counter an offer or send a new one.');
 }
 
 async function loadThread(){
   if(!threadUuid) return;
-  try{ const r = await fetch('get_thread.php?uuid='+encodeURIComponent(threadUuid)); const j = await r.json();
+  try{ const r = await fetch('get_thread.php?uuid='+encodeURIComponent(threadUuid)+'&t='+(Date.now())); const j = await r.json();
     if(j.status!=='success'){ toast('thread not found'); return; }
-    // ensure id/version are numbers
-    offersCache = (j.offers||[]).map(o=>({
-      ...o,
-      id: Number(o.id),
-      version: Number(o.version)
-    }));
+    offersCache = (j.offers||[]).map(o=>({ ...o, id:Number(o.id), version:Number(o.version) }));
+    const versions = offersCache.map(o=>o.version); const mv = versions.length? Math.max(...versions):0; if(mv>lastVersion) lastVersion = mv;
     agreedFields = computeAgreedFields(offersCache);
     renderAgreedPanel(); renderOffersList();
   }catch(e){ toast('load error'); }
@@ -236,15 +246,14 @@ function renderOffersList(){
     const it=document.createElement('div'); it.className='item';
     it.innerHTML = `
       <b>v${o.version}</b> by ${escapeHtml(o.party)} (${escapeHtml(o.role)})<br>
-      <small class=\"muted\">${escapeHtml(o.created_at)}</small>
-      <div style=\"margin-top:6px;display:flex;gap:6px;flex-wrap:wrap\">
-        <button class=\"ghost\" data-see=\"${o.id}\">view</button>
-        <button class=\"secondary\" data-ctr=\"${o.id}\">counter</button>
-        <button data-acc=\"${o.id}\">accept</button>
+      <small class="muted">${escapeHtml(o.created_at)}</small>
+      <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">
+        <button class="ghost" data-see="${o.id}">view</button>
+        <button class="secondary" data-ctr="${o.id}">counter</button>
+        <button data-acc="${o.id}">accept</button>
       </div>`;
     pane.appendChild(it);
   });
-  // event delegation so buttons always work
   pane.onclick = (e)=>{
     const btn = e.target.closest('button'); if(!btn) return;
     if(btn.hasAttribute('data-see')) viewOffer(Number(btn.getAttribute('data-see')));
@@ -254,9 +263,8 @@ function renderOffersList(){
 }
 
 function viewOffer(id){
-  const off = offersCache.find(o=> Number(o.id) === Number(id));
-  if(!off){ toast('offer not found'); return; }
-  addBot(`<b>viewing v${off.version}</b><br><pre style=\"white-space:pre-wrap;margin:6px 0\">${escapeHtml(JSON.stringify(off.data,null,2))}</pre>`);
+  const off = offersCache.find(o=>Number(o.id)===Number(id)); if(!off){ toast('offer not found'); return; }
+  addBot(`<b>viewing v${off.version}</b><br>` + formatOffer(off));
 }
 
 const modal = $('#modal'), sectionsEl = $('#sections');
@@ -267,7 +275,7 @@ function openForm(){
   let hidden=0, remaining=0;
   Object.entries(bySec).forEach(([sec,fields])=>{
     const allAgreed = fields.every(q=> agreedFields.has(q.id));
-    const det=document.createElement('details'); det.open=!allAgreed; det.innerHTML=`<summary>${sec} ${allAgreed?'<span class=\"tag\">all agreed</span>':''}</summary>`;
+    const det=document.createElement('details'); det.open=!allAgreed; det.innerHTML=`<summary>${sec} ${allAgreed?'<span class="tag">all agreed</span>':''}</summary>`;
     const wrap=document.createElement('div'); wrap.className=fields.length>3?'grid':'onecol';
     fields.forEach(q=>{
       if(agreedFields.has(q.id)){ hidden++; return; }
@@ -303,8 +311,7 @@ async function submitOffer(){
 }
 
 function startCounter(offer_id){
-  const off=offersCache.find(o=> Number(o.id) === Number(offer_id));
-  if(!off){ toast('offer not found'); return; }
+  const off=offersCache.find(o=>Number(o.id)===Number(offer_id)); if(!off){ toast('offer not found'); return; }
   answers = {...(off.data||{})};
   addBot(`countering v${off.version} — edit remaining terms and click <b>Use These Terms</b>.`);
   openForm();
@@ -328,9 +335,30 @@ async function runCmd(){
   else if(low==='accept'){ acceptLatest(); }
   else if(low==='recap'){ if(threadUuid) window.open('generate_recap.php?uuid='+encodeURIComponent(threadUuid),'_blank'); else addBot('no thread'); }
   else if(low==='load'){ const uuid=rest[0]; if(!uuid){ addBot('usage: load th_xxx'); return; } $('#uuidInput').value=uuid; await joinThreadByUuid(); }
-  else if(low==='counter'){ const token=rest[0]||''; const m=token.match(/^v(\d+)$/i); if(!m){ addBot('usage: counter v{version}'); return; } const ver=Number(m[1]); const off=offersCache.find(o=> Number(o.version) === ver); if(!off){ addBot('offer not found'); return; } startCounter(off.id); }
+  else if(low==='counter'){ const token=rest[0]||''; const m=token.match(/^v(\d+)$/i); if(!m){ addBot('usage: counter v{version}'); return; } const ver=Number(m[1]); const off=offersCache.find(o=>Number(o.version)===ver); if(!off){ addBot('offer not found'); return; } startCounter(off.id); }
   else{ addBot('commands: start | offer | counter vN | accept | recap | load th_XXXX'); }
 }
+
+// realtime poller with backoff protection
+let pollFail = 0;
+async function pollOnce(){
+  if(!threadUuid) return;
+  try{
+    const r = await fetch('get_thread.php?uuid='+encodeURIComponent(threadUuid)+'&t='+(Date.now()), { cache:'no-store' });
+    const j = await r.json(); if(j.status!=='success') return;
+    const incoming = (j.offers||[]).map(o=>({ ...o, id:Number(o.id), version:Number(o.version) }));
+    const versions = incoming.map(o=>o.version); const newMax = versions.length? Math.max(...versions):0;
+    if(newMax > lastVersion){
+      const prevLast = lastVersion; lastVersion = newMax;
+      offersCache = incoming; agreedFields = computeAgreedFields(offersCache);
+      renderAgreedPanel(); renderOffersList();
+      const justNew = incoming.filter(o=> o.version>prevLast);
+      if (justNew.length){ const o = justNew[justNew.length-1]; addBot('new offer received:<br>' + formatOffer(o)); }
+    }
+    pollFail = 0;
+  }catch(e){ pollFail++; if(pollFail>5){ clearInterval(pollTimer); pollTimer=null; toast('live updates paused (network). press join to resume'); } }
+}
+function startPolling(){ if(pollTimer) clearInterval(pollTimer); pollTimer = setInterval(pollOnce, 2000); }
 
 window.onload = ()=>{ addBot('welcome aboard! set your <b>name</b> and <b>role</b>, then click <b>start new</b> or type <b>start</b>.'); };
 </script>
