@@ -1,16 +1,31 @@
 <?php
-header('Content-Type: application/json');
-require 'db.php';
+include 'db_connect.php';
 
-// Inputs
-$created_by = $_POST['created_by'] ?? 'User';
-$title      = $_POST['title']      ?? 'Negotiation';
+// Generate unique UUID for each new negotiation
+$uuid = 'th_' . uniqid();
+$created_by = $_POST['created_by'] ?? 'Unknown';
+$status = 'open';
 
-// UUID like th_a1b2c3d4e5f6
-$uuid = 'th_'.bin2hex(random_bytes(6));
+// Prepare and insert thread
+$stmt = $conn->prepare("INSERT INTO threads (thread_uuid, created_by, status, created_at) VALUES (?, ?, ?, NOW())");
+$stmt->bind_param("sss", $uuid, $created_by, $status);
 
-$ins = $pdo->prepare("INSERT INTO threads(thread_uuid, title, created_by, locked_fields) VALUES(?,?,?, '[]')");
-$ok  = $ins->execute([$uuid, $title, $created_by]);
+if ($stmt->execute()) {
+    $thread_id = $stmt->insert_id; // auto-generated ID
 
-echo json_encode($ok ? ["status"=>"success","thread_uuid"=>$uuid]
-                     : ["status"=>"error","message"=>"Failed to create thread"]);
+    echo json_encode([
+        'status' => 'success',
+        'message' => 'Thread created successfully',
+        'thread_id' => $thread_id,
+        'thread_uuid' => $uuid
+    ]);
+} else {
+    echo json_encode([
+        'status' => 'error',
+        'message' => 'Failed to create thread: ' . $stmt->error
+    ]);
+}
+
+$stmt->close();
+$conn->close();
+?>
