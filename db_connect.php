@@ -1,15 +1,12 @@
 <?php
-// db_connect.php
-$servername = "localhost";
-$username   = "root";
-$password   = "";
-$dbname     = "ime_negotiation";
+// db_connect.php — PDO connection (works with all backend files)
+$host = '127.0.0.1';
+$db   = 'ime_chat';   // <- your DB name
+$user = 'root';
+$pass = '';
+$dsn  = "mysql:host=$host;dbname=$db;charset=utf8mb4";
 
-$conn = new mysqli($servername, $username, $password, $dbname);
-if ($conn->connect_error) {
-  http_response_code(500);
-  echo json_encode(['status'=>'error','message'=>'DB connect error: '.$conn->connect_error]);
-  exit;
-}
-$conn->set_charset("utf8mb4");
-?>
+$pdo = new PDO($dsn, $user, $pass, [
+  PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+  PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
+]);
