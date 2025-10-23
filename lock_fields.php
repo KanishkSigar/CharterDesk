@@ -1,32 +1,25 @@
 <?php
 header('Content-Type: application/json');
-include 'db_connect.php';
+require 'db.php';
 
-$input = json_decode(file_get_contents("php://input"), true);
-$thread_uuid = $conn->real_escape_string($input['thread_uuid'] ?? '');
-$fields = $input['fields'] ?? [];
+$in = json_decode(file_get_contents('php://input'), true);
+$uuid   = $in['thread_uuid'] ?? '';
+$fields = $in['fields']      ?? [];
 
-if(!$thread_uuid){ echo json_encode(['status'=>'error','message'=>'Missing thread_uuid']); exit; }
-if(!is_array($fields) || empty($fields)){ echo json_encode(['status'=>'error','message'=>'No fields to lock']); exit; }
+if (!$uuid) { echo json_encode(["status"=>"error","message"=>"Missing uuid"]); exit; }
+if (!is_array($fields)) $fields = [];
 
-$res = $conn->query("SELECT id, locked_fields FROM threads WHERE thread_uuid='$thread_uuid' LIMIT 1");
-if($res->num_rows==0){ echo json_encode(['status'=>'error','message'=>'Thread not found']); exit; }
-$row = $res->fetch_assoc();
-$thread_id = (int)$row['id'];
+// read existing
+$sel = $pdo->prepare("SELECT locked_fields FROM threads WHERE thread_uuid=?");
+$sel->execute([$uuid]);
+$existing = json_decode(($sel->fetchColumn() ?: '[]'), true);
+if (!is_array($existing)) $existing = [];
 
-$current = [];
-if (!empty($row['locked_fields'])) {
-  $tmp = json_decode($row['locked_fields'], true);
-  if (is_array($tmp)) $current = $tmp;
-}
+// merge unique
+$merged = array_values(array_unique(array_merge($existing, $fields)));
 
-$merged = array_values(array_unique(array_merge($current, array_map('strval',$fields))));
-$new_json = $conn->real_escape_string(json_encode($merged, JSON_UNESCAPED_UNICODE));
+$up = $pdo->prepare("UPDATE threads SET locked_fields=? WHERE thread_uuid=?");
+$ok = $up->execute([json_encode($merged, JSON_UNESCAPED_UNICODE), $uuid]);
 
-$ok = $conn->query("UPDATE threads SET locked_fields='$new_json' WHERE id=$thread_id");
-if($ok){
-  echo json_encode(['status'=>'success','locked_fields'=>$merged]);
-}else{
-  echo json_encode(['status'=>'error','message'=>$conn->error]);
-}
-$conn->close();
+echo json_encode($ok ? ["status"=>"success","locked_fields"=>$merged]
+                     : ["status"=>"error","message"=>"Update failed"]);
