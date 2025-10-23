@@ -1,9 +1,8 @@
 <?php
-// db_connect.php — PDO connection (works with all backend files)
-$host = '127.0.0.1';
-$db   = 'ime_chat';   // <- your DB name
-$user = 'root';
-$pass = '';
+$host = 'sqlXXX.epizy.com';       // ← from InfinityFree (NOT localhost)
+$db   = 'epiz_12345678_imechat';  // ← your full DB name
+$user = 'epiz_12345678';          // ← your MySQL username
+$pass = 'YOUR_DB_PASSWORD';       // ← your MySQL password
 $dsn  = "mysql:host=$host;dbname=$db;charset=utf8mb4";
 
 $pdo = new PDO($dsn, $user, $pass, [
