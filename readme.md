@@ -1,56 +1,66 @@
-IME AI Negotiation Assistant
+# IME AI Negotiation Assistant  
+_A lightweight AI-assisted negotiation system for maritime fixture deals_
 
-A PHP + MySQL (XAMPP) web application for structured, guided voyage fixture negotiations between shipowners, charterers, buyers, and sellers.
-The system allows parties to exchange firm offers, counters, and acceptances, while automatically tracking revisions and generating fixture recaps in HTML or PDF.
+[![Run Locally](https://img.shields.io/badge/Run-Locally-blue)](#7-running-the-application)
+[![View Recap](https://img.shields.io/badge/View-Recap-green)](#14-switching-between-html-and-pdf-recap)
+[![PDF Mode](https://img.shields.io/badge/Recap-PDF--Enabled-orange)](#14-switching-between-html-and-pdf-recap)
 
-1. Overview
+---
 
-Core features
+## 1. Overview
 
-Role-based negotiation (Owner / Charterer / Buyer / Seller)
+A PHP + MySQL application (runs on XAMPP) for structured, guided voyage fixture negotiations between **Ship Owners**, **Charterers**, **Buyers**, and **Sellers**.
 
-Start or join negotiation threads using unique UUIDs
+**Key Features**
+- Role-based negotiation interface  
+- Create/join threads with unique UUIDs  
+- Firm Offer → Counter → Accept workflow  
+- Collapsible 40-question form for all trade terms  
+- Locked-field system hides accepted terms  
+- Auto PDF or HTML recap  
+- Two-party live negotiation via shared thread
 
-Firm offer → counter → accept workflow
+---
 
-40-question collapsible form covering vessel, cargo, laycan, freight, and clauses
+## 2. Requirements
 
-Locked-field mechanism — accepted terms are hidden in subsequent counters
+| Tool | Purpose | Command |
+|------|----------|----------|
+| XAMPP | PHP 8 +, Apache, MySQL | `php -v` |
+| Git | Version control | `git --version` |
+| Composer | PHP package manager | `composer -V` |
 
-Real-time two-party sync through shared UUID
+---
 
-Auto-generated recap (HTML or PDF via Dompdf)
+## 3. Project Structure
 
-Light blue chat-based interface
+Place under your webroot:
 
-2. Requirements
-Tool	Purpose	Command to Verify
-XAMPP	PHP 8 +, Apache, MySQL	php -v
-Git	Version control	git --version
-Composer	PHP dependencies	composer -V
-3. Project Directory
-
-Place the project in your XAMPP web root:
-
+```
 C:\xampp\htdocs\ime-negotiation
+```
 
-Structure
-index.html             → Chat UI and form
-db_connect.php         → Database connection (PDO)
-create_thread.php      → Create new negotiation
-get_thread.php         → Retrieve offers and locked fields
-save_offer.php         → Save offers / counters
-lock_fields.php        → Lock accepted terms
+```
+index.html             → Chat UI & form
+db_connect.php         → DB connection (PDO)
+create_thread.php      → New negotiation
+get_thread.php         → Fetch thread/offers
+save_offer.php         → Save or counter
+lock_fields.php        → Lock agreed fields
 accept_offer.php       → Record acceptance
-generate_recap.php     → HTML recap view
-generate_recap_pdf.php → PDF recap (optional)
-vendor/                → Composer dependencies
-README.md              → This guide
+generate_recap.php     → HTML recap
+generate_recap_pdf.php → PDF recap
+vendor/                → Composer packages
+README.md              → This file
+```
 
-4. Database Setup
+---
 
-Create a database (example: ime_chat) in phpMyAdmin and run:
+## 4. Database Setup
 
+Create database `ime_chat` and run:
+
+```sql
 CREATE TABLE threads (
   id INT AUTO_INCREMENT PRIMARY KEY,
   thread_uuid VARCHAR(64) UNIQUE,
@@ -81,8 +91,15 @@ CREATE TABLE field_accepts (
   accepted_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   UNIQUE KEY uq_field_accept (thread_uuid, field_name)
 );
+```
 
-5. Database Connection (db_connect.php)
+---
+
+## 5. Database Connection
+
+**db_connect.php**
+
+```php
 <?php
 $host = '127.0.0.1';
 $db   = 'ime_chat';
@@ -94,165 +111,158 @@ $pdo = new PDO($dsn, $user, $pass, [
   PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
   PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
 ]);
-
-
-Ensure this file is referenced in every backend script:
-
+```
+Make sure every backend file includes:
+```php
 require 'db_connect.php';
+```
 
-6. Install Dompdf
+---
 
-From the project directory:
+## 6. Install Dependencies
 
+```bash
+cd C:\xampp\htdocs\ime-negotiation
 composer require dompdf/dompdf
+```
+If you see `missing zip extension`, enable `extension=zip` in `php.ini`.
 
+---
 
-If errors occur, enable extension=zip in php.ini and confirm git --version works.
+## 7. Running the Application
 
-7. Running the Application
+1. Start **Apache** and **MySQL** in XAMPP.  
+2. Open:  
+   ```
+   http://localhost/ime-negotiation/
+   ```
 
-Launch Apache and MySQL in the XAMPP Control Panel.
+---
 
-Open in a browser:
-http://localhost/ime-negotiation/
+## 8. Basic Usage
 
-8. Basic Usage
+### Start / Join
+- Enter your **name** and **role**
+- Click **Start New** or **Load** (with UUID)
 
-Start / Join a Thread
+### Create Offer
+- Type `offer` or click **Send Firm Offer**
+- Fill the 40-question collapsible form  
+- Submit to generate v1 offer
 
-Enter your name and select a role.
+### Counter / Accept
+- Counterparty views and counters existing offers
+- Accepted terms auto-lock; only unresolved ones reappear
 
-Click Start New to create a thread or Load to join an existing UUID.
+### Recap
+- Once agreed, click **Recap**
+- Opens fixture recap (HTML or PDF)
 
-Create a Firm Offer
+---
 
-Type offer or click Send Firm Offer.
+## 9. Chat Commands
 
-Complete the collapsible 40-question form.
+```
+start          → show quick help
+offer          → open form
+counter        → counter last offer
+accept         → accept latest offer
+recap          → open recap
+load th_xxxxx  → load a thread by UUID
+```
 
-Click Use These Terms to submit.
+---
 
-Counter / Accept
+## 10. Git Workflow
 
-The counterparty views the offer from the left panel.
-
-Click View, then Counter or Accept.
-
-Accepted fields lock automatically.
-
-Recap
-
-Once all terms are accepted, click Recap.
-
-Opens the latest fixture recap (HTML or downloadable PDF).
-
-9. Chat Commands
-start          - show quick help
-offer          - open the offer form
-counter        - counter the latest offer
-accept         - accept latest offer
-recap          - open recap view
-load th_xxxxx  - load a thread by UUID
-
-10. Git Workflow
-
-If you manage the project through Git:
-
+```bash
 git add -A
-git commit -m "Update UI, locking logic, recap generation"
+git commit -m "update UI, locking, recap"
 git push
-
-
-To link your GitHub repo:
-
+```
+First-time setup:
+```bash
 git branch -M main
 git remote add origin https://github.com/KanishkSigar/IME-AI-Chat-.git
 git push -u origin main
+```
 
-11. Sharing Locally (Testing)
+---
 
-Use ngrok to generate a public URL for live testing.
+## 11. Public Testing via Ngrok
 
+```bash
 ngrok http 80
-
-
-Share the output URL, e.g.
+```
+Share:
+```
 https://abcd-1234.ngrok-free.app/ime-negotiation/
-
-If Apache uses another port (e.g., 8080):
-
+```
+If Apache uses port 8080:
+```
 ngrok http 8080
+```
 
-12. Troubleshooting
-Problem	Cause	Fix
-JSON error in browser console	PHP outputting HTML error	Open DevTools → Network → check failing endpoint
-Buttons (View / Counter) unresponsive	Invalid JSON response	Confirm scripts use header('Content-Type: application/json')
-Recap missing party names	Both users must join same UUID	Re-enter names and reload
-PDF not downloading	Dompdf missing	Run composer require dompdf/dompdf
-“Thread not found”	UUID invalid or expired	Re-create negotiation
-13. Architecture Overview
-Logical Flow
- ┌─────────────┐        ┌───────────────┐
- │ Party A     │◀───▶│  PHP Backend   │◀───▶│  MySQL Database │
- └─────────────┘        └───────────────┘
-         ▲                     │
-         │                     ▼
- ┌─────────────┐        ┌───────────────┐
- │ Party B     │◀───▶│  Dompdf Recap │
- └─────────────┘        └───────────────┘
+---
 
-Mermaid (GitHub Render)
+## 12. Troubleshooting
+
+| Issue | Cause | Fix |
+|-------|--------|-----|
+| JSON parse error | PHP emitted HTML error | Check DevTools → Network |
+| View/Counter not working | Invalid JSON | Ensure `header('Content-Type: application/json')` |
+| Recap missing names | Join same UUID | Reload after login |
+| PDF blank | Dompdf not installed | `composer require dompdf/dompdf` |
+| Thread not found | Wrong UUID | Start new negotiation |
+
+---
+
+## 13. Architecture Overview
+
+```text
+Party A (Owner) ⇄ PHP Backend ⇄ MySQL
+Party B (Charterer) ⇄ PHP Backend ⇄ Dompdf Recap
+```
+
+### Mermaid
+```mermaid
 flowchart TD
     A[Party A (Owner)] <--> B((PHP Backend))
     B <--> C[(MySQL Database)]
     D[Party B (Charterer)] <--> B
     B --> E[Fixture Recap (PDF via Dompdf)]
+```
 
-14. Switching Between HTML and PDF Recap
+---
 
-You can control whether the recap opens as a web page or directly downloads as a PDF.
+## 14. Switching Between HTML and PDF Recap
 
-Option 1 — HTML Recap (default)
-
-The frontend points to:
-
+### HTML Recap (default)
+Frontend link:
+```
 generate_recap.php?uuid=<thread_uuid>
+```
+Opens a printable web recap.
 
+### PDF Recap
+1. Confirm Dompdf installed  
+2. Change link to:
+   ```
+   generate_recap_pdf.php?uuid=<thread_uuid>
+   ```
+Downloads `fixture_recap_<uuid>.pdf` directly.  
+Switch freely between the two modes—no rebuild required.
 
-This opens a clean, printable HTML recap in a new browser tab.
+---
 
-You can still download it manually as a PDF using Ctrl+P → Save as PDF.
+## 15. Production Recommendations
 
-Option 2 — PDF Recap (automated)
+- Add authentication & permissions  
+- Sanitize all user inputs  
+- Move credentials out of webroot  
+- Enable HTTPS & CSRF protection  
+- Implement rate limits and audit logging
 
-Ensure Dompdf is installed:
-
-composer require dompdf/dompdf
-
-
-Change the recap button or link to:
-
-generate_recap_pdf.php?uuid=<thread_uuid>
-
-
-This will trigger direct PDF rendering and prompt download as fixture_recap_<uuid>.pdf.
-
-You can toggle between both views freely — no code rebuild required.
-
-15. Production Recommendations
-
-Before deploying beyond local testing:
-
-Add user authentication and access control.
-
-Validate and sanitize all form inputs.
-
-Move credentials out of webroot.
-
-Enable HTTPS.
-
-Implement CSRF protection and rate limiting.
-
-16. Credits
-
-Developed for IME Negotiation Automation Platform
+---
+Developed by **IME Negotiation Automation Team**  
+© 2025 IME Platform / TBI-GEU Innovation Lab
