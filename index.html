@@ -3,364 +3,702 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>IME Negotiation — Chat (Realtime Final)</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<title>IME Negotiation Chat</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700&display=swap" rel="stylesheet">
 <style>
-  :root{ --bg:#f6f7fb; --panel:#ffffff; --line:#e8ecf1; --muted:#6b7280; --ink:#0f172a; --brand:#0b6fa4; --brand-2:#095a84; --me:#e6f4ff; }
+  :root{
+    /* Updated palette — very light blue background, matching brand blues */
+    --bg:#f0f7ff;           /* page background (new) */
+    --panel:#ffffff;        /* cards/panels */
+    --muted:#6b7280;
+    --line:#e5e7eb;
+    --ink:#0f172a;
+    --brand:#0b6fa4;        /* primary blue */
+    --brand2:#095a84;       /* hover blue */
+    --me:#e0f2fe;           /* my message bubble */
+  }
+
   *{box-sizing:border-box}
-  html,body{height:100%}
   body{margin:0;font-family:Inter,system-ui,Arial,sans-serif;background:var(--bg);color:var(--ink)}
-  .wrap{display:grid;grid-template-rows:64px 1fr;min-height:100vh}
-  .top{background:linear-gradient(90deg,#0b6fa4,#0b7fb8);color:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 16px;box-shadow:0 1px 0 rgba(0,0,0,.06)}
-  .brand{display:flex;align-items:center;gap:10px}
-  .logo{width:30px;height:30px;border-radius:8px;background:#fff1;border:1px solid #ffffff33}
-  .brand h1{font-size:16px;font-weight:700;margin:0}
-  .top small{opacity:.9}
-  .main{display:grid;grid-template-columns:320px 1fr;gap:14px;padding:14px}
-  .panel{background:var(--panel);border:1px solid var(--line);border-radius:14px}
-  .left{padding:14px;display:flex;flex-direction:column;gap:12px}
+  .wrap{display:grid;grid-template-columns:320px 1fr;gap:12px;min-height:100vh;padding:12px}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:12px}
+
+  /* left */
+  #left{padding:14px;display:flex;flex-direction:column;gap:12px}
   .row{display:flex;gap:8px;align-items:center}
-  input,select,textarea{padding:10px;border:1px solid var(--line);border-radius:10px;width:100%;font:inherit}
-  button{padding:10px 12px;border:0;border-radius:10px;background:var(--brand);color:#fff;cursor:pointer;font-weight:600}
-  button.secondary{background:#eef2f7;color:#0b1324;border:1px solid var(--line)}
-  button.ghost{background:#fff;color:#0b1324;border:1px solid var(--line)}
-  button:hover{filter:brightness(.98)}
-  .thread{padding:10px;border:1px dashed var(--line);border-radius:10px;font-size:12px;word-break:break-all;background:#fafcff}
-  h3{margin:2px 0 4px 0;font-size:14px}
-  .tag{font-size:11px;padding:2px 6px;border-radius:999px;background:#eef6ff;border:1px solid #dbeafe;color:#075985;margin-left:6px}
-  .list{display:flex;flex-direction:column;gap:8px}
-  .item{background:#f6f8fb;border:1px solid var(--line);border-radius:10px;padding:8px}
+  input,select,textarea{padding:10px;border:1px solid var(--line);border-radius:8px;width:100%}
+  button{padding:10px 12px;border:0;border-radius:8px;background:var(--brand);color:#fff;cursor:pointer}
+  button:hover{background:var(--brand2)}
+  .ghost{background:#eef6ff;color:#0f172a} /* ghost buttons slightly blue too */
   .muted{color:var(--muted);font-size:12px}
-  .center{display:grid;grid-template-rows:auto 1fr auto}
-  .toolbar{display:flex;gap:8px;align-items:center;padding:12px;border-bottom:1px solid var(--line)}
-  .toolbar .info{font-size:12px;color:var(--muted);margin-left:auto}
-  .chat{padding:14px;overflow:auto;display:flex;flex-direction:column;gap:10px}
-  .bubble{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px;max-width:80%}
-  .bubble.me{align-self:flex-end;background:var(--me);border-color:#cfe9ff}
-  .meta{font-size:11px;color:var(--muted);margin-top:6px}
-  .composer{padding:12px;border-top:1px solid var(--line);display:flex;gap:8px}
-  .composer input{flex:1}
-  .modal{position:fixed;inset:0;background:rgba(15,23,42,.45);display:none;align-items:center;justify-content:center;padding:16px}
-  .modal.show{display:flex}
-  .sheet{background:#fff;border-radius:16px;border:1px solid var(--line);width:min(980px,95vw);max-height:92vh;overflow:auto;box-shadow:0 10px 30px rgba(0,0,0,.16)}
-  .sheet header{display:flex;justify-content:space-between;align-items:center;padding:14px;border-bottom:1px solid var(--line)}
-  .sections{padding:12px;display:flex;flex-direction:column;gap:10px}
-  details{border:1px solid var(--line);border-radius:10px;background:#fcfdff}
-  summary{cursor:pointer;padding:10px 12px;font-weight:700}
-  .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:10px 12px}
-  .onecol{display:grid;grid-template-columns:1fr;gap:12px;padding:10px 12px}
-  label{font-size:12px;color:#334155;margin-bottom:6px;display:block}
-  .preset{background:#f3f6fb;border:1px solid var(--line);border-radius:16px;padding:6px 10px;font-size:12px;cursor:pointer;margin-right:6px;display:inline-block}
-  .note{font-size:12px;color:var(--muted)}
-  .toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:#111827;color:#fff;padding:10px 14px;border-radius:10px;font-size:12px;display:none}
-  .toast.show{display:block}
+  .thread{padding:8px;border:1px dashed var(--line);border-radius:8px;font-size:12px;word-break:break-all;background:#fafcff}
+  .list{display:flex;flex-direction:column;gap:8px}
+  .item{background:#f5f9ff;border:1px solid var(--line);border-radius:8px;padding:8px}
+  .item b{color:#0f172a}
+  .toolbar{margin-top:6px;display:flex;gap:6px;flex-wrap:wrap}
+  .toolbar button{padding:6px 8px;font-size:12px}
+
+  /* center */
+  #center{display:grid;grid-template-rows:auto 1fr auto}
+  #topbar{display:flex;gap:12px;align-items:center;padding:12px;border-bottom:1px solid var(--line);background:#f8fbff}
+  #topbar #logo{height:28px;width:auto;display:block;margin-right:8px;}
+  #chat{padding:14px;overflow:auto;display:flex;flex-direction:column;gap:10px;background:#ffffff}
+  .bubble{background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px;max-width:80%}
+  .me{align-self:flex-end;background:var(--me);border-color:#bae6fd}
+  .meta{font-size:11px;color:var(--muted);margin-top:4px}
+
+  /* composer: role small, chat big */
+  #composer{
+    padding:12px;border-top:1px solid var(--line);
+    display:flex;gap:8px;align-items:center;background:#f8fbff
+  }
+  #role{width:160px;min-width:140px;flex:0 0 160px}
+  #msg{flex:1;min-width:0}
+
+  /* modal sheets */
+  .modal{position:fixed;inset:0;background:rgba(15,23,42,.35);display:none;align-items:center;justify-content:center;padding:16px;z-index:50}
+  .sheet{background:#fff;max-width:900px;width:100%;max-height:90vh;overflow:auto;border-radius:12px;border:1px solid var(--line)}
+  .sheet header{padding:14px 16px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;background:#f8fbff}
+  .sheet .body{padding:14px 16px;display:flex;flex-direction:column;gap:12px}
+  details{border:1px solid var(--line);border-radius:10px;padding:10px;background:#fbfdff}
+  summary{font-weight:600;cursor:pointer}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .chips{display:flex;gap:6px;flex-wrap:wrap}
+  .chip{background:#f3f8ff;border:1px solid var(--line);border-radius:16px;padding:6px 10px;font-size:12px;cursor:pointer}
+  .actions{display:flex;gap:8px;justify-content:flex-end;padding:12px;border-top:1px solid var(--line);background:#f8fbff}
+  .kv{display:grid;grid-template-columns:220px 1fr auto;gap:6px;align-items:center}
+  .kv .k{font-weight:600}
+  .kv .v{white-space:pre-wrap}
+  .sep{height:1px;background:var(--line);margin:8px 0}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <div class="top">
-    <div class="brand"><div class="logo"></div><h1>IME Negotiation Assistant</h1></div>
-    <small>welcome! start new or join by uuid</small>
-  </div>
-  <div class="main">
-    <aside class="left panel">
-      <h3>get started</h3>
-      <div class="row">
-        <input id="createdBy" placeholder="your name" />
-        <button id="btnNew">start new</button>
-      </div>
-      <div class="row">
-        <select id="roleSelect"><option>Ship Owner</option><option>Charterer</option><option>Buyer</option><option>Seller</option></select>
-        <input id="uuidInput" placeholder="join by uuid" />
-        <button class="ghost" id="btnJoin">join</button>
-      </div>
-      <div class="thread" id="threadInfo">no thread yet</div>
+  <!-- LEFT -->
+  <aside id="left" class="panel">
+    <div style="display:flex;align-items:center;gap:8px">
+      <div style="font-weight:700;font-size:18px">IME Negotiation</div>
+      <span class="muted" style="margin-left:auto">Beta</span>
+    </div>
+    <div class="row">
+      <input id="who" placeholder="Your name (required)" />
+      <button id="btnNew">New</button>
+    </div>
+    <div class="row">
+      <input id="uuidInput" placeholder="Thread UUID (load existing)" />
+      <button id="btnLoad">Load</button>
+    </div>
+    <div class="thread" id="threadInfo">No thread yet.</div>
 
-      <h3>agreed terms <span id="agreedCount" class="tag">0</span></h3>
-      <div id="agreedList" class="list" style="min-height:42px"><div class="muted">nothing agreed yet</div></div>
+    <div class="sep"></div>
 
-      <h3>offers (history)</h3>
-      <div id="offersList" class="list"></div>
-    </aside>
+    <div style="font-weight:600">Offers</div>
+    <div id="offersList" class="list"></div>
+  </aside>
 
-    <main class="center panel">
-      <div class="toolbar">
-        <button id="btnOffer">Send Firm Offer</button>
-        <button id="btnAccept">Accept Latest</button>
-        <button id="btnRecap">Generate Recap</button>
-        <div class="info" id="sendInfo"></div>
-      </div>
+  <!-- CENTER -->
+  <main id="center" class="panel">
+    <div id="topbar">
+      <!-- Put logo.png in the same folder -->
+      <img id="logo" src="logo.png" alt="IME logo">
+      <div style="font-weight:700;">Welcome to IME Negotiation Assistant</div>
+      <div class="muted" style="margin-left:auto;">Use the same Thread UUID in both browsers</div>
+    </div>
 
-      <section id="chat" class="chat">
-        <div class="bubble">hey 👋 i’m IME. let’s fix your voyage smoothly.<br><br>click <b>start new</b> or enter a <b>uuid</b> on the left and press <b>join</b>. when ready, click <b>Send Firm Offer</b>. i’ll only show terms that still need agreement.</div>
-      </section>
+    <section id="chat"></section>
 
-      <div class="composer">
-        <input id="input" placeholder="commands: start | offer | counter v3 | accept | recap | load th_XXXX" />
-        <button id="send">send</button>
-      </div>
-    </main>
+    <footer id="composer">
+      <select id="role" title="Your role">
+        <option>Ship Owner</option>
+        <option>Charterer</option>
+        <option>Buyer</option>
+        <option>Seller</option>
+      </select>
+      <input id="msg" placeholder='Type: start, offer, counter, accept, recap' />
+      <button id="send">Send</button>
+      <button id="btnRecap" class="ghost">Recap</button>
+      <button id="quickOffer" class="ghost">Send Firm Offer</button>
+    </footer>
+  </main>
+</div>
+
+<!-- OFFER FORM MODAL -->
+<div class="modal" id="modal">
+  <div class="sheet">
+    <header>
+      <div style="font-weight:700">Firm Offer / Counter Terms</div>
+      <button id="x">Close</button>
+    </header>
+    <div class="body">
+      <!-- 1. Role & Vessel -->
+      <details open>
+        <summary>Role & Vessel</summary>
+        <div class="two">
+          <div>
+            <label>Role</label>
+            <select id="f_role">
+              <option>Ship Owner</option>
+              <option>Charterer</option>
+              <option>Buyer</option>
+              <option>Seller</option>
+            </select>
+          </div>
+          <div><label>Vessel Name / TBN</label><input id="vessel" /></div>
+          <div><label>Gear Type & Capacity</label><input id="gear" placeholder="4 x 30MT cranes, 4 x 12 CBM grabs" /></div>
+          <div><label>Class & Flag</label><input id="class_flag" placeholder="DNV / Panama" /></div>
+          <div><label>Built Year</label><input id="built_year" placeholder="2012" /></div>
+          <div><label>Last 3 Cargoes</label><input id="last_cargoes" placeholder="Coal, Petcoke, Iron Ore" /></div>
+          <div><label>P&amp;I Coverage</label><input id="pni" placeholder="North of England" /></div>
+          <div><label>Sanctions/Warranties</label>
+            <select id="sanctions"><option>Yes</option><option>No</option></select>
+          </div>
+        </div>
+      </details>
+
+      <!-- 2. Cargo & Ports -->
+      <details>
+        <summary>Cargo & Ports</summary>
+        <div class="two">
+          <div><label>Cargo Type</label>
+            <select id="cargo">
+              <option>Steam Coal</option><option>Iron Ore</option><option>Fertilizer</option><option>Grain</option><option>Other</option>
+            </select>
+          </div>
+          <div><label>Quantity & Tolerance</label><input id="qty" placeholder="55,000 MT ±10% MOLOO" /></div>
+          <div><label>Lawful/IMO Compliant</label><select id="imo"><option>Yes</option><option>No</option></select></div>
+          <div><label>Load Port (Name/Terminal/SP/SA)</label><input id="load_port" placeholder="Kandla – Adani Terminal (SP/SA)" /></div>
+          <div><label>Discharge Port (Name/Terminal/SP/SA)</label><input id="dis_port" placeholder="Port Qasim – Fauji Terminal (SP/SA)" /></div>
+          <div><label>Max Draft Guaranteed at Disport?</label><select id="max_draft"><option>Yes</option><option>No</option></select></div>
+          <div><label>Other Ports on Open Book?</label><select id="open_book"><option>No</option><option>Yes</option></select></div>
+        </div>
+      </details>
+
+      <!-- 3. Laycan -->
+      <details>
+        <summary>Laycan</summary>
+        <div class="two">
+          <div><label>Start Date</label><input id="laycan_start" placeholder="15 Oct 2025" /></div>
+          <div><label>End Date</label><input id="laycan_end" placeholder="20 Oct 2025" /></div>
+          <div><label>Option to Narrow</label><select id="narrow"><option>Yes</option><option>No</option></select></div>
+        </div>
+      </details>
+
+      <!-- 4. Rates & Laytime -->
+      <details>
+        <summary>Rates & Laytime</summary>
+        <div class="two">
+          <div><label>Freight</label><input id="freight" placeholder="USD 6.25 PMT FIOST" /></div>
+          <div><label>Load Rate</label><input id="load_rate" placeholder="8000 MT PWWD SHINC" /></div>
+          <div><label>Discharge Rate</label><input id="dis_rate" placeholder="10000 MT PWWD SHINC" /></div>
+          <div><label>Load Rate Option</label><input id="load_rate_opt" placeholder="Chopt 10k vs 8k" /></div>
+          <div><label>Demurrage</label><input id="demurrage" placeholder="USD 12,000 PDPR" /></div>
+          <div><label>Despatch</label><input id="despatch" placeholder="USD 6,000 PDPR (Half Dem)" /></div>
+          <div><label>Laytime Type</label><select id="laytime"><option>Reversible</option><option>Non-reversible</option></select></div>
+        </div>
+      </details>
+
+      <!-- 5. CP & Riders -->
+      <details>
+        <summary>CP & Riders</summary>
+        <div class="two">
+          <div><label>CP Base</label>
+            <select id="cp_base"><option>GENCON 1994</option><option>NYPE 2015</option><option>Canchart</option></select>
+          </div>
+          <div><label>Custom Clauses Attached</label><select id="cp_custom"><option>Yes</option><option>No</option></select></div>
+          <div><label>Editable Riders Allowed</label><select id="edit_riders"><option>Yes</option><option>No</option></select></div>
+          <div class="two" style="grid-column:1/-1">
+            <div>
+              <label>Riders (toggle chips)</label>
+              <div class="chips" id="riderChips"></div>
+              <small class="muted">Click chips to toggle: Force Majeure, LOI (No OBL), Stevedore Damage, Switch B/L, Hold Readiness, Sanctions, Arbitration (London/English law)</small>
+            </div>
+            <div>
+              <label>Additional Clause (free text)</label>
+              <textarea id="add_clause" rows="3" placeholder="NOR valid whether in berth or not."></textarea>
+            </div>
+          </div>
+        </div>
+      </details>
+
+      <!-- 6. Ops & Notices -->
+      <details>
+        <summary>Ops & Notices</summary>
+        <div class="two">
+          <div><label>Contact Person</label><input id="contact" placeholder="R. Mehta – Chartering Desk" /></div>
+          <div><label>Company</label><input id="company" placeholder="Global Shipping Pvt. Ltd." /></div>
+          <div><label>Email</label><input id="email" placeholder="chartering@globalship.in" /></div>
+          <div style="grid-column:1/-1"><label>Notes</label><textarea id="notes" rows="2" placeholder="Please confirm full cargo insurance and vessel itinerary."></textarea></div>
+        </div>
+      </details>
+    </div>
+    <div class="actions">
+      <button id="useTerms">Use These Terms</button>
+    </div>
   </div>
 </div>
 
-<div id="modal" class="modal"><div class="sheet">
-  <header>
-    <div><b>Firm Offer — fill remaining terms</b> <span id="agreedHint" class="note"></span></div>
-    <div>
-      <button class="secondary" id="closeModal">close</button>
-      <button id="useTerms">Use These Terms</button>
+<!-- VIEW OFFER MODAL (checkbox to lock fields) -->
+<div class="modal" id="viewModal">
+  <div class="sheet">
+    <header>
+      <div style="font-weight:700" id="viewTitle">Offer vX</div>
+      <button id="vx">Close</button>
+    </header>
+    <div class="body" id="viewBody"></div>
+    <div class="actions">
+      <button id="btnLockFields">Accept Selected Terms</button>
     </div>
-  </header>
-  <div class="sections" id="sections"></div>
-</div></div>
-
-<div id="toast" class="toast"></div>
+  </div>
+</div>
 
 <script>
-const $ = s => document.querySelector(s);
-const chat = $('#chat');
-function addBot(html){ const b=document.createElement('div'); b.className='bubble'; b.innerHTML=html; chat.appendChild(b); chat.scrollTop=chat.scrollHeight; }
-function addMe(text){ const b=document.createElement('div'); b.className='bubble me'; b.textContent=text; chat.appendChild(b); chat.scrollTop=chat.scrollHeight; }
-function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'), 1800); }
-function escapeHtml(s){ return String(s??'').replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;' }[m])); }
-
+/* ---------- STATE ---------- */
 let threadUuid = null;
-let offersCache = [];
-let agreedFields = new Set();
-let answers = {};
+let offers = [];
+let lockedFields = []; // stored in threads.locked_fields
+let currentForm = {};
+let counterFromOfferId = null;
 let pollTimer = null;
-let lastVersion = 0;
 
-function formatOffer(off){
-  const d = off.data || {};
-  const map = {
-    vessel_name:'Vessel', cargo_type:'Cargo', quantity_tol:'Qty', load_port:'Load Port', disch_port:'Disch Port',
-    laycan_start:'Laycan From', laycan_end:'Laycan To', freight:'Freight', demurrage:'Demurrage', disch_rate:'Disch Rate', load_rate:'Load Rate'
-  };
-  const lines = Object.keys(map).filter(k=>d[k]).map(k=>`• <b>${map[k]}</b>: ${escapeHtml(d[k])}`).join('<br>');
-  return `<b>v${off.version}</b> by ${escapeHtml(off.party)} (${escapeHtml(off.role)})<br>${lines || '<i>(no visible fields)</i>'}`;
-}
-
-const QUESTIONS = [
-  {id:'vessel_name',label:'Vessel Name / TBN',type:'text',section:'Role & Vessel'},
-  {id:'gear',label:'Gear Type & Capacity',type:'text',section:'Role & Vessel',presets:['4 x 30MT cranes','4 x 12 CBM grabs']},
-  {id:'class_flag',label:'Class & Flag',type:'text',section:'Role & Vessel',presets:['DNV / Panama']},
-  {id:'built_year',label:'Built Year',type:'text',section:'Role & Vessel'},
-  {id:'last_3_cargoes',label:'Last 3 cargoes',type:'text',section:'Role & Vessel',presets:['Coal, Petcoke, Iron Ore']},
-  {id:'pi_coverage',label:'P&I Coverage',type:'text',section:'Role & Vessel',presets:['North of England']},
-  {id:'sanctions_ok',label:'Sanctions/Warranties Confirmation',type:'choice',choices:['Yes','No'],section:'Role & Vessel'},
-  {id:'cargo_type',label:'Cargo Type',type:'choice',choices:['Steam Coal','Thermal Coal','Iron Ore','Grain','Fertilizer','Other'],section:'Cargo & Ports'},
-  {id:'quantity_tol',label:'Quantity & Tolerance',type:'text',section:'Cargo & Ports',presets:['55,000 MT ±10% MOLOO']},
-  {id:'imo_ok',label:'Lawful/Harmless & IMO compliant',type:'choice',choices:['Yes','No'],section:'Cargo & Ports'},
-  {id:'load_port',label:'Load Port (Name/Terminal/SP/SA)',type:'text',section:'Cargo & Ports',presets:['Kandla — Adani Terminal']},
-  {id:'disch_port',label:'Discharge Port (Name/Terminal/SP/SA)',type:'text',section:'Cargo & Ports',presets:['Port Qasim — Fauji Terminal']},
-  {id:'disch_max_draft',label:'Chtrs guarantee max draft at discharge?',type:'choice',choices:['Yes','No'],section:'Cargo & Ports'},
-  {id:'allow_other_ports',label:'Allow other ports (open book)?',type:'choice',choices:['Yes','No'],section:'Cargo & Ports'},
-  {id:'laycan_start',label:'Laycan Start Date',type:'text',section:'Laycan',presets:['15 Oct 2025']},
-  {id:'laycan_end',label:'Laycan End Date',type:'text',section:'Laycan',presets:['20 Oct 2025']},
-  {id:'option_to_narrow',label:'Option to narrow?',type:'choice',choices:['Yes','No'],section:'Laycan'},
-  {id:'freight',label:'Freight',type:'text',section:'Rates & Laytime',presets:['USD 6.25/MT FIOST']},
-  {id:'load_rate',label:'Load Rate',type:'text',section:'Rates & Laytime',presets:['8000 MT PWWD SHINC']},
-  {id:'disch_rate',label:'Discharge Rate',type:'text',section:'Rates & Laytime',presets:['10000 MT PWWD SHINC']},
-  {id:'load_rate_opt',label:'Load Rate Option',type:'text',section:'Rates & Laytime',presets:['Chopt 10k vs 8k']},
-  {id:'demurrage',label:'Demurrage Rate',type:'text',section:'Rates & Laytime',presets:['USD 12,000 PDPR']},
-  {id:'despatch',label:'Despatch Rate',type:'text',section:'Rates & Laytime',presets:['USD 6,000 PDPR (Half Dem)']},
-  {id:'laytime_type',label:'Laytime Type',type:'choice',choices:['Reversible','Non-reversible'],section:'Rates & Laytime'},
-  {id:'nor_rule',label:'NOR/Laytime Rule',type:'text',section:'Rates & Laytime',presets:['ATDNSHINC / WWWW']},
-  {id:'holiday_clause',label:'Holiday Exclusions',type:'text',section:'Rates & Laytime',presets:['SHINC']},
-  {id:'payment_terms',label:'Freight Payment Terms',type:'text',section:'Rates & Laytime',presets:['95% in 5 banking days']},
-  {id:'dem_settlement',label:'Dem/Des Settlement',type:'text',section:'Rates & Laytime',presets:['within 30/45 days post discharge']},
-  {id:'commission',label:'Commission Structure',type:'text',section:'Rates & Laytime',presets:['2.5% to Chtrs / 3.75% F/D/D']},
-  {id:'cp_base',label:'Base CP Format',type:'choice',choices:['GENCON 1994','NYPE 2015','Canchart'],section:'CP & Riders'},
-  {id:'attach_clauses',label:'Attach custom clauses?',type:'choice',choices:['Yes','No'],section:'CP & Riders'},
-  {id:'editable_riders',label:'Allow editable riders?',type:'choice',choices:['Yes','No'],section:'CP & Riders'},
-  {id:'riders',label:'Riders / Special Clauses',type:'textarea',section:'CP & Riders',presets:['Force Majeure','Stevedore Damage','Switch B/L','Sanctions Compliance','LOI for discharge without B/L','Arbitration: London, English Law','NOR even if berth not ready']},
-  {id:'contact_person',label:'Ops Contact Person',type:'text',section:'Ops & Notices'},
-  {id:'ops_company',label:'Company',type:'text',section:'Ops & Notices'},
-  {id:'ops_email',label:'Email',type:'text',section:'Ops & Notices'},
-  {id:'ops_notes',label:'Operational Notes',type:'textarea',section:'Ops & Notices'},
-  {id:'fp_clause',label:'Free Pratique Delay Counts?',type:'choice',choices:['Yes','No'],section:'Ops & Notices'},
-  {id:'agent_nomination',label:'Agent Nomination',type:'text',section:'Ops & Notices',presets:['Chtrs to nominate @ competitive D/A']},
-  {id:'eta_notices',label:'ETA Notices',type:'text',section:'Ops & Notices',presets:['5/4/3/2/1 days']},
-  {id:'final_disport_rule',label:'Final Disport Declaration Rule',type:'text',section:'Ops & Notices',presets:['Declare before crossing Singapore']}
+/* ---------- FIELD IDS (40) ---------- */
+const FIELD_IDS = [
+  'role','vessel','gear','class_flag','built_year','last_cargoes','pni','sanctions',
+  'cargo','qty','imo','load_port','dis_port','max_draft','open_book',
+  'laycan_start','laycan_end','narrow',
+  'freight','load_rate','dis_rate','load_rate_opt','demurrage','despatch','laytime',
+  'cp_base','cp_custom','edit_riders','riders','add_clause',
+  'contact','company','email','notes',
+  'commission','nor_policy','holiday_exclusion','fp_clause','doc_window','agent_nomination','eta_notices'
 ];
 
-$('#btnNew').onclick = createThread;
-$('#btnJoin').onclick = joinThreadByUuid;
-$('#btnOffer').onclick = openForm;
-$('#btnAccept').onclick = acceptLatest;
-$('#btnRecap').onclick = ()=> threadUuid ? window.open('generate_recap.php?uuid='+encodeURIComponent(threadUuid),'_blank') : addBot('no thread yet');
-$('#send').onclick = runCmd;
-$('#input').addEventListener('keydown', e=>{ if(e.key==='Enter') runCmd(); });
-$('#closeModal').onclick = ()=> $('#modal').classList.remove('show');
-$('#useTerms').onclick = submitOffer;
+const DEFAULT_RIDERS = [
+  'Force Majeure',
+  'LOI for discharge without B/L',
+  'Stevedore Damage Clause',
+  'Switch B/L & split B/L terms',
+  'Hold readiness clause',
+  'Sanctions compliance',
+  'Arbitration: London, English law'
+];
 
-async function createThread(){
-  const created_by = $('#createdBy').value.trim();
-  if(!created_by){ toast('enter your name first'); return; }
-  const fd = new FormData(); fd.append('created_by', created_by); fd.append('title','Negotiation');
-  try{ const r = await fetch('create_thread.php',{method:'POST',body:fd}); const j = await r.json();
-    if(j.status==='success'){ threadUuid=j.thread_uuid; $('#threadInfo').textContent='thread: '+threadUuid; addBot('new thread created 🎉 now click <b>Send Firm Offer</b>'); offersCache=[]; agreedFields=new Set(); renderAgreedPanel(); renderOffersList(); lastVersion = 0; startPolling(); }
-    else toast('create failed: '+(j.message||'unknown error'));
-  }catch(e){ toast('server error'); }
+/* ---------- HELPERS ---------- */
+const $ = s => document.querySelector(s);
+function addBubble(html, me=false){
+  const d = document.createElement('div');
+  d.className = 'bubble' + (me?' me':'');
+  d.innerHTML = html;
+  $('#chat').appendChild(d);
+  $('#chat').scrollTop = $('#chat').scrollHeight;
 }
-
-async function joinThreadByUuid(){
-  const uuid = $('#uuidInput').value.trim(); if(!uuid){ toast('enter a uuid'); return; }
-  threadUuid = uuid; $('#threadInfo').textContent = 'thread: '+threadUuid; await loadThread();
-  const versions = offersCache.map(o=>o.version); lastVersion = versions.length? Math.max(...versions):0; startPolling();
-  addBot('joined thread. you can counter an offer or send a new one.');
+function setThreadInfo(){
+  $('#threadInfo').textContent = threadUuid ? `Thread: ${threadUuid}` : 'No thread yet.';
 }
-
-async function loadThread(){
-  if(!threadUuid) return;
-  try{ const r = await fetch('get_thread.php?uuid='+encodeURIComponent(threadUuid)+'&t='+(Date.now())); const j = await r.json();
-    if(j.status!=='success'){ toast('thread not found'); return; }
-    offersCache = (j.offers||[]).map(o=>({ ...o, id:Number(o.id), version:Number(o.version) }));
-    const versions = offersCache.map(o=>o.version); const mv = versions.length? Math.max(...versions):0; if(mv>lastVersion) lastVersion = mv;
-    agreedFields = computeAgreedFields(offersCache);
-    renderAgreedPanel(); renderOffersList();
-  }catch(e){ toast('load error'); }
+function startPolling(){
+  stopPolling();
+  pollTimer = setInterval(async ()=>{
+    if(!threadUuid) return;
+    const beforeCnt = offers.length;
+    await loadThread(true);
+    if(offers.length !== beforeCnt){
+      addBubble('🔔 New activity detected. Offers list updated.');
+    }
+  }, 4000);
 }
+function stopPolling(){ if(pollTimer){ clearInterval(pollTimer); pollTimer=null; } }
 
-function computeAgreedFields(offers){
-  const set = new Set(); if(!offers || offers.length<2) return set;
-  const last = offers[offers.length-1]; let prev=null;
-  for(let i=offers.length-2;i>=0;i--){ if(offers[i].party!==last.party){ prev=offers[i]; break; } }
-  if(!prev) return set;
-  const a = last.data||{}, b = prev.data||{};
-  Object.keys(a).forEach(k=>{ const av=(a[k]??'').toString().trim(); const bv=(b[k]??'').toString().trim(); if(av!=='' && av===bv) set.add(k); });
-  return set;
+/* ---------- GREETING ---------- */
+function greeting(){
+  $('#chat').innerHTML='';
+  addBubble(`<div style="font-weight:700;font-size:18px">Hello, I’m IME Negotiation Assistant.</div>
+  <div class="meta">Use the same Thread UUID in both browsers to negotiate live.</div>`);
+  addBubble(`Enter your name (left), choose your role, then type <b>start</b>. You can also type <b>offer</b>, <b>counter</b>, <b>accept</b>, or <b>recap</b>.`);
 }
+greeting();
 
-function renderAgreedPanel(){
-  const box = $('#agreedList'); box.innerHTML=''; const count = agreedFields.size; $('#agreedCount').textContent = count;
-  if(count===0){ box.innerHTML='<div class="muted">nothing agreed yet</div>'; return; }
-  const latest = offersCache[offersCache.length-1]?.data || {};
-  [...agreedFields].forEach(k=>{ const q=QUESTIONS.find(x=>x.id===k); const label=q?q.label:k; const v=latest[k]; const d=document.createElement('div'); d.className='item'; d.innerHTML=`<b>${escapeHtml(label)}:</b> ${escapeHtml(v??'')}`; box.appendChild(d); });
-}
-
-function renderOffersList(){
-  const pane=$('#offersList'); pane.innerHTML='';
-  offersCache.forEach(o=>{
-    const it=document.createElement('div'); it.className='item';
-    it.innerHTML = `
-      <b>v${o.version}</b> by ${escapeHtml(o.party)} (${escapeHtml(o.role)})<br>
-      <small class="muted">${escapeHtml(o.created_at)}</small>
-      <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">
-        <button class="ghost" data-see="${o.id}">view</button>
-        <button class="secondary" data-ctr="${o.id}">counter</button>
-        <button data-acc="${o.id}">accept</button>
-      </div>`;
-    pane.appendChild(it);
+/* ---------- NAME PERSISTENCE ---------- */
+(function initName(){
+  const saved = localStorage.getItem('ime_name');
+  if(saved){ $('#who').value = saved; }
+  $('#who').addEventListener('input', ()=> {
+    localStorage.setItem('ime_name', $('#who').value.trim());
   });
-  pane.onclick = (e)=>{
-    const btn = e.target.closest('button'); if(!btn) return;
-    if(btn.hasAttribute('data-see')) viewOffer(Number(btn.getAttribute('data-see')));
-    if(btn.hasAttribute('data-ctr')) startCounter(Number(btn.getAttribute('data-ctr')));
-    if(btn.hasAttribute('data-acc')) acceptOffer(Number(btn.getAttribute('data-acc')));
-  };
-}
+})();
 
-function viewOffer(id){
-  const off = offersCache.find(o=>Number(o.id)===Number(id)); if(!off){ toast('offer not found'); return; }
-  addBot(`<b>viewing v${off.version}</b><br>` + formatOffer(off));
-}
-
-const modal = $('#modal'), sectionsEl = $('#sections');
-function openForm(){
-  if(!threadUuid){ toast('create or join a thread first'); return; }
-  if(!Object.keys(answers).length && offersCache.length){ answers = {...(offersCache[offersCache.length-1].data||{})}; }
-  const bySec = {}; QUESTIONS.forEach(q=> (bySec[q.section] ??= []).push(q)); sectionsEl.innerHTML='';
-  let hidden=0, remaining=0;
-  Object.entries(bySec).forEach(([sec,fields])=>{
-    const allAgreed = fields.every(q=> agreedFields.has(q.id));
-    const det=document.createElement('details'); det.open=!allAgreed; det.innerHTML=`<summary>${sec} ${allAgreed?'<span class="tag">all agreed</span>':''}</summary>`;
-    const wrap=document.createElement('div'); wrap.className=fields.length>3?'grid':'onecol';
-    fields.forEach(q=>{
-      if(agreedFields.has(q.id)){ hidden++; return; }
-      remaining++;
-      const f=document.createElement('div'); f.innerHTML=`<label>${q.label}</label>`; let input;
-      if(q.type==='choice'){
-        input=document.createElement('select'); (q.choices||[]).forEach(c=>{ const o=document.createElement('option'); o.value=c; o.textContent=c; input.appendChild(o); }); input.value = answers[q.id]??q.choices?.[0]??'';
-      }else if(q.type==='textarea'){
-        input=document.createElement('textarea'); input.rows=3; input.value = answers[q.id]??'';
-      }else{
-        input=document.createElement('input'); input.type='text'; input.value = answers[q.id]??'';
+/* ---------- RIDER CHIPS ---------- */
+(function initRiders(){
+  const box = $('#riderChips');
+  DEFAULT_RIDERS.forEach(label=>{
+    const span = document.createElement('span');
+    span.className='chip'; span.textContent=label;
+    span.onclick = ()=>{
+      const cur = (currentForm.riders || '').split(' | ').filter(Boolean);
+      if (cur.includes(label)) {
+        currentForm.riders = cur.filter(x=>x!==label).join(' | ');
+      } else {
+        cur.push(label); currentForm.riders = cur.join(' | ');
       }
-      input.oninput = ()=> answers[q.id]=input.value; f.appendChild(input);
-      if(q.presets && q.presets.length){ const row=document.createElement('div'); row.style.marginTop='6px'; q.presets.forEach(p=>{ const chip=document.createElement('span'); chip.className='preset'; chip.textContent=p; chip.onclick=()=>{ input.value=p; answers[q.id]=p; }; row.appendChild(chip); }); f.appendChild(row); }
-      wrap.appendChild(f);
-    });
-    det.appendChild(wrap); sectionsEl.appendChild(det);
+      span.style.opacity = cur.includes(label)? '1' : '.5';
+    };
+    box.appendChild(span);
   });
-  $('#agreedHint').textContent = hidden? `(${hidden} agreed terms hidden)` : '';
-  $('#sendInfo').textContent = remaining? `sending ${remaining} term(s) in next firm offer` : 'all terms agreed';
-  $('#modal').classList.add('show');
-}
+})();
 
-async function submitOffer(){
-  $('#modal').classList.remove('show');
-  if(!threadUuid){ toast('no thread'); return; }
-  const payload = { thread_uuid: threadUuid, party: $('#createdBy').value || 'User', role: $('#roleSelect').value, data: answers, riders: answers['riders'] || '' };
-  addMe('sending firm offer…');
-  try{ const r=await fetch('save_offer.php',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}); const j=await r.json();
-    if(j.status==='success'){ addBot(`offer saved as v${j.version}. waiting for counterparty…`); await loadThread(); }
-    else toast('save failed: '+(j.message||'unknown error'));
-  }catch(e){ toast('server error'); }
+/* ---------- NORMALIZERS (resilient to API shapes) ---------- */
+function getOfferId(o){ return o.id ?? o.offer_id ?? o.offerID ?? o.ID ?? null; }
+function getOfferVersion(o){ return o.version ?? o.ver ?? o.v ?? 0; }
+function getOfferParty(o){ return o.party ?? o.created_by ?? o.sender ?? 'User'; }
+function getOfferRole(o){ return o.role ?? o.party_role ?? o.side ?? 'Unknown'; }
+function getOfferData(o){
+  if (o.data && typeof o.data === 'string'){ try{ return JSON.parse(o.data); }catch(e){} }
+  return o.data ?? o.data_json ?? o.payload ?? {};
 }
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m])); }
 
-function startCounter(offer_id){
-  const off=offersCache.find(o=>Number(o.id)===Number(offer_id)); if(!off){ toast('offer not found'); return; }
-  answers = {...(off.data||{})};
-  addBot(`countering v${off.version} — edit remaining terms and click <b>Use These Terms</b>.`);
-  openForm();
-}
+/* ---------- OFFER FORM MODAL ---------- */
+const modal = $('#modal'); const closeModal=()=> modal.style.display='none';
+$('#x').onclick = closeModal;
 
-async function acceptOffer(offer_id){
-  try{ const r=await fetch('accept_offer.php',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({offer_id:Number(offer_id),party:$('#createdBy').value||'User'})}); const j=await r.json();
-    addBot(j.message||'accepted.'); if(j.recap_url){ window.open(j.recap_url,'_blank'); } await loadThread();
-  }catch(e){ toast('accept failed'); }
-}
+$('#useTerms').onclick = ()=>{
+  currentForm.role = $('#f_role').value;
+  currentForm.vessel = $('#vessel').value;
+  currentForm.gear = $('#gear').value;
+  currentForm.class_flag = $('#class_flag').value;
+  currentForm.built_year = $('#built_year').value;
+  currentForm.last_cargoes = $('#last_cargoes').value;
+  currentForm.pni = $('#pni').value;
+  currentForm.sanctions = $('#sanctions').value;
 
-function acceptLatest(){
-  const pane=$('#offersList'); const btns=pane.querySelectorAll('[data-acc]'); if(!btns.length){ toast('no offers yet'); return; } btns[btns.length-1].click();
-}
+  currentForm.cargo = $('#cargo').value;
+  currentForm.qty = $('#qty').value;
+  currentForm.imo = $('#imo').value;
+  currentForm.load_port = $('#load_port').value;
+  currentForm.dis_port = $('#dis_port').value;
+  currentForm.max_draft = $('#max_draft').value;
+  currentForm.open_book = $('#open_book').value;
 
-async function runCmd(){
-  const v=$('#input').value.trim(); if(!v) return; addMe(v); $('#input').value='';
-  const [cmd,...rest]=v.split(/\s+/); const low=cmd.toLowerCase();
-  if(low==='start'||low==='new'){ await createThread(); }
-  else if(low==='offer'){ openForm(); }
-  else if(low==='accept'){ acceptLatest(); }
-  else if(low==='recap'){ if(threadUuid) window.open('generate_recap.php?uuid='+encodeURIComponent(threadUuid),'_blank'); else addBot('no thread'); }
-  else if(low==='load'){ const uuid=rest[0]; if(!uuid){ addBot('usage: load th_xxx'); return; } $('#uuidInput').value=uuid; await joinThreadByUuid(); }
-  else if(low==='counter'){ const token=rest[0]||''; const m=token.match(/^v(\d+)$/i); if(!m){ addBot('usage: counter v{version}'); return; } const ver=Number(m[1]); const off=offersCache.find(o=>Number(o.version)===ver); if(!off){ addBot('offer not found'); return; } startCounter(off.id); }
-  else{ addBot('commands: start | offer | counter vN | accept | recap | load th_XXXX'); }
-}
+  currentForm.laycan_start = $('#laycan_start').value;
+  currentForm.laycan_end = $('#laycan_end').value;
+  currentForm.narrow = $('#narrow').value;
 
-// realtime poller with backoff protection
-let pollFail = 0;
-async function pollOnce(){
+  currentForm.freight = $('#freight').value;
+  currentForm.load_rate = $('#load_rate').value;
+  currentForm.dis_rate = $('#dis_rate').value;
+  currentForm.load_rate_opt = $('#load_rate_opt').value;
+  currentForm.demurrage = $('#demurrage').value;
+  currentForm.despatch = $('#despatch').value;
+  currentForm.laytime = $('#laytime').value;
+
+  currentForm.cp_base = $('#cp_base').value;
+  currentForm.cp_custom = $('#cp_custom').value;
+  currentForm.edit_riders = $('#edit_riders').value;
+  currentForm.add_clause = $('#add_clause').value;
+
+  currentForm.contact = $('#contact').value;
+  currentForm.company = $('#company').value;
+  currentForm.email = $('#email').value;
+  currentForm.notes = $('#notes').value;
+
+  // sensible defaults for extra fields
+  currentForm.commission = currentForm.commission || '2.5% to brokers';
+  currentForm.nor_policy = currentForm.nor_policy || 'NOR valid whether in berth or not';
+  currentForm.holiday_exclusion = currentForm.holiday_exclusion || 'Holidays excluded unless working';
+  currentForm.fp_clause = currentForm.fp_clause || 'Free Pratique delays as per CP';
+  currentForm.doc_window = currentForm.doc_window || 'Docs within 4/12 hrs as per port';
+  currentForm.agent_nomination = currentForm.agent_nomination || 'Agent at Charterers cost / competitive DA';
+  currentForm.eta_notices = currentForm.eta_notices || '5/4/3/2/1 day ETAs';
+
+  closeModal();
+  addBubble('✅ Terms captured. Click “Send Firm Offer” or type “offer” to send.', true);
+};
+
+/* ---------- VIEW OFFER MODAL (LOCK FIELDS) ---------- */
+const viewModal = $('#viewModal'); const closeView=()=> viewModal.style.display='none';
+$('#vx').onclick = closeView;
+
+$('#btnLockFields').onclick = async ()=>{
+  if(!threadUuid){ alert('No thread loaded.'); return; }
+  const selected = [...document.querySelectorAll('.lockBox:checked')].map(cb=>cb.value);
+  if(selected.length===0){ alert('Select fields to accept.'); return; }
+
+  const r = await fetch('lock_fields.php',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ thread_uuid: threadUuid, fields: selected })
+  });
+  const j = await r.json();
+  if(j.status==='success'){
+    lockedFields = j.locked_fields || [];
+    addBubble(`🔒 Accepted terms locked: ${selected.join(', ')}`);
+    await loadThread();
+    closeView();
+  }else{
+    alert(j.message||'Failed to lock fields');
+  }
+};
+
+/* ---------- LEFT PANE: NEW/LOAD ---------- */
+$('#btnNew').onclick = async ()=>{
+  const me = ($('#who').value || '').trim();
+  if(!me){ alert('Please enter your name (left) before creating a thread.'); return; }
+  localStorage.setItem('ime_name', me);
+
+  const fd = new FormData();
+  fd.append('created_by', me);
+  fd.append('title','Negotiation');
+  const r = await fetch('create_thread.php',{method:'POST', body:fd});
+  const j = await r.json();
+  if(j.status==='success'){
+    threadUuid = j.thread_uuid; offers = []; lockedFields = [];
+    setThreadInfo(); $('#offersList').innerHTML=''; greeting(); startPolling();
+    addBubble('🆕 Thread created. Share the UUID with counterparty to join.');
+  }else alert(j.message||'Failed to create thread');
+};
+
+$('#btnLoad').onclick = async ()=>{
+  const id = $('#uuidInput').value.trim();
+  const me = ($('#who').value || '').trim();
+  if(!me){ alert('Please enter your name (left) before loading.'); return; }
+  localStorage.setItem('ime_name', me);
+  if(!id){ alert('Enter a Thread UUID'); return; }
+  threadUuid = id;
+  await loadThread();
+  greeting(); startPolling();
+  addBubble('📥 Loaded thread. You’re synced. Type “offer” or use the buttons on the left.');
+};
+
+/* ---------- LOAD THREAD ---------- */
+async function loadThread(silent=false){
   if(!threadUuid) return;
   try{
-    const r = await fetch('get_thread.php?uuid='+encodeURIComponent(threadUuid)+'&t='+(Date.now()), { cache:'no-store' });
-    const j = await r.json(); if(j.status!=='success') return;
-    const incoming = (j.offers||[]).map(o=>({ ...o, id:Number(o.id), version:Number(o.version) }));
-    const versions = incoming.map(o=>o.version); const newMax = versions.length? Math.max(...versions):0;
-    if(newMax > lastVersion){
-      const prevLast = lastVersion; lastVersion = newMax;
-      offersCache = incoming; agreedFields = computeAgreedFields(offersCache);
-      renderAgreedPanel(); renderOffersList();
-      const justNew = incoming.filter(o=> o.version>prevLast);
-      if (justNew.length){ const o = justNew[justNew.length-1]; addBot('new offer received:<br>' + formatOffer(o)); }
-    }
-    pollFail = 0;
-  }catch(e){ pollFail++; if(pollFail>5){ clearInterval(pollTimer); pollTimer=null; toast('live updates paused (network). press join to resume'); } }
+    const r = await fetch('get_thread.php?uuid='+encodeURIComponent(threadUuid));
+    const j = await r.json();
+    if(j.status!=='success'){ if(!silent) alert(j.message||'Load failed'); return; }
+    offers = j.offers || [];
+    lockedFields = j.locked_fields || [];
+    setThreadInfo();
+    renderOffers();
+  }catch(e){
+    if(!silent) console.error(e);
+  }
 }
-function startPolling(){ if(pollTimer) clearInterval(pollTimer); pollTimer = setInterval(pollOnce, 2000); }
 
-window.onload = ()=>{ addBot('welcome aboard! set your <b>name</b> and <b>role</b>, then click <b>start new</b> or type <b>start</b>.'); };
+/* ---------- RENDER OFFERS (robust) ---------- */
+function renderOffers(){
+  const pane = document.getElementById('offersList');
+  pane.innerHTML = '';
+
+  if (!Array.isArray(offers) || offers.length===0){
+    pane.innerHTML = '<div class="muted">No offers yet.</div>';
+    return;
+  }
+
+  offers.forEach(o=>{
+    const id = getOfferId(o);
+    const v  = getOfferVersion(o);
+    const p  = getOfferParty(o);
+    const r  = getOfferRole(o);
+
+    const d = document.createElement('div');
+    d.className='item';
+    d.innerHTML = `
+      <div><b>v${v}</b> by ${escapeHtml(p)} (${escapeHtml(r)})</div>
+      <div class="toolbar">
+        <button data-action="see" data-id="${id}">View</button>
+        <button data-action="ctr" data-id="${id}">Counter</button>
+        <button data-action="acc" data-id="${id}">Accept</button>
+      </div>`;
+    pane.appendChild(d);
+  });
+}
+
+/* ---------- Delegated clicks on the offers list ---------- */
+document.getElementById('offersList').addEventListener('click', (e)=>{
+  const btn = e.target.closest('button[data-action]');
+  if(!btn) return;
+  const id = btn.dataset.id ? (isNaN(+btn.dataset.id) ? btn.dataset.id : +btn.dataset.id) : null;
+  const action = btn.dataset.action;
+
+  if (!id){ alert('Offer id missing from API.'); return; }
+
+  if (action === 'see') openView(id);
+  if (action === 'ctr') startCounter(id);
+  if (action === 'acc') acceptOffer(id);
+});
+
+/* ---------- VIEW OFFER ---------- */
+function openView(offer_id){
+  const off = offers.find(o => String(getOfferId(o)) === String(offer_id));
+  if(!off){ alert('Offer not found (id '+offer_id+'). Check API keys.'); return; }
+
+  const v = getOfferVersion(off);
+  const p = getOfferParty(off);
+  const r = getOfferRole(off);
+  const data = getOfferData(off);
+
+  document.getElementById('viewTitle').textContent = `Offer v${v} by ${p} (${r})`;
+
+  const body = document.getElementById('viewBody');
+  body.innerHTML=''; body.setAttribute('data-offer-id', String(offer_id));
+
+  FIELD_IDS.forEach(fid=>{
+    const row = document.createElement('div'); row.className='kv';
+    const val = data[fid] ?? '';
+    const checked = lockedFields.includes(fid) ? 'checked' : '';
+    const disabled = lockedFields.includes(fid) ? 'disabled' : '';
+    row.innerHTML = `
+      <div class="k">${fid.replace(/_/g,' ')}</div>
+      <div class="v">${val ? String(val).replace(/\n/g,'<br>') : '<span class="muted">—</span>'}</div>
+      <div><input type="checkbox" class="lockBox" value="${fid}" ${checked} ${disabled}></div>`;
+    body.appendChild(row);
+  });
+
+  document.getElementById('viewModal').style.display='flex';
+}
+
+/* ---------- COUNTER (disable locked fields) ---------- */
+function startCounter(offer_id){
+  const off = offers.find(o => String(getOfferId(o)) === String(offer_id));
+  if(!off){ alert('Offer not found (id '+offer_id+').'); return; }
+
+  counterFromOfferId = offer_id;
+  currentForm = {...getOfferData(off)};
+  resetModalInputs(); // sets values
+
+  // disable locked
+  setTimeout(()=>{
+    const map = {
+      vessel:'vessel',gear:'gear',class_flag:'class_flag',built_year:'built_year',last_cargoes:'last_cargoes',pni:'pni',sanctions:'sanctions',
+      cargo:'cargo',qty:'qty',imo:'imo',load_port:'load_port',dis_port:'dis_port',max_draft:'max_draft',open_book:'open_book',
+      laycan_start:'laycan_start',laycan_end:'laycan_end',narrow:'narrow',
+      freight:'freight',load_rate:'load_rate',dis_rate:'dis_rate',load_rate_opt:'load_rate_opt',demurrage:'demurrage',despatch:'despatch',laytime:'laytime',
+      cp_base:'cp_base',cp_custom:'cp_custom',edit_riders:'edit_riders',add_clause:'add_clause',
+      contact:'contact',company:'company',email:'email',notes:'notes'
+    };
+    Object.entries(map).forEach(([fid,id])=>{
+      const el = document.getElementById(id);
+      if(!el) return;
+      el.value = currentForm[fid] || '';
+      if(lockedFields.includes(fid)){ el.disabled = true; el.style.opacity='.6'; }
+    });
+
+    const curR = (currentForm.riders || '').split(' | ').filter(Boolean);
+    [...document.querySelectorAll('#riderChips .chip')].forEach(ch=>{
+      ch.style.opacity = curR.includes(ch.textContent)? '1':'.5';
+      if(lockedFields.includes('riders')){ ch.style.pointerEvents='none'; ch.style.opacity='.6'; }
+    });
+  }, 0);
+
+  document.getElementById('modal').style.display='flex';
+}
+
+/* ---------- Reset modal inputs ---------- */
+function resetModalInputs(){
+  $('#f_role').value = currentForm.role || $('#role').value;
+  const map = {
+    vessel:'vessel',gear:'gear',class_flag:'class_flag',built_year:'built_year',last_cargoes:'last_cargoes',pni:'pni',sanctions:'sanctions',
+    cargo:'cargo',qty:'qty',imo:'imo',load_port:'load_port',dis_port:'dis_port',max_draft:'max_draft',open_book:'open_book',
+    laycan_start:'laycan_start',laycan_end:'laycan_end',narrow:'narrow',
+    freight:'freight',load_rate:'load_rate',dis_rate:'dis_rate',load_rate_opt:'load_rate_opt',demurrage:'demurrage',despatch:'despatch',laytime:'laytime',
+    cp_base:'cp_base',cp_custom:'cp_custom',edit_riders:'edit_riders',add_clause:'add_clause',
+    contact:'contact',company:'company',email:'email',notes:'notes'
+  };
+  Object.entries(map).forEach(([fid,id])=>{
+    const el = document.getElementById(id);
+    if(!el) return;
+    el.disabled = false; el.style.opacity='1';
+    el.value = currentForm[fid] || '';
+  });
+  const curR = (currentForm.riders || '').split(' | ').filter(Boolean);
+  [...document.querySelectorAll('#riderChips .chip')].forEach(ch=>{
+    ch.style.pointerEvents='auto';
+    ch.style.opacity = curR.includes(ch.textContent)? '1':'.5';
+  });
+}
+
+/* ---------- CHAT & QUICK ACTIONS ---------- */
+$('#send').onclick = handleSend;
+$('#msg').addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); handleSend(); } });
+$('#quickOffer').onclick = ()=> { counterFromOfferId=null; openOfferFormFresh(); };
+$('#btnRecap').onclick = ()=> {
+  if(!threadUuid){ alert('Load a thread first.'); return; }
+  window.open('generate_recap.php?uuid='+encodeURIComponent(threadUuid),'_blank');
+};
+
+function handleSend(){
+  const txt = $('#msg').value.trim();
+  if(!txt) return;
+  addBubble(txt, true);
+  $('#msg').value='';
+  const low = txt.toLowerCase();
+  if(low==='start'){
+    addBubble('Click “New” to create a thread or “Load” to join one. Then type “offer” to open the form.');
+  } else if(low==='offer'){
+    if(!threadUuid){ addBubble('Create or load a thread first.', false); return; }
+    counterFromOfferId = null;
+    openOfferFormFresh();
+  } else if(low==='counter'){
+    if(!threadUuid){ addBubble('Load a thread first.', false); return; }
+    addBubble('Pick an existing offer on the left and click “Counter”. Locked terms will be disabled.');
+  } else if(low==='accept'){
+    if(!threadUuid){ addBubble('Load a thread first.', false); return; }
+    addBubble('Use the Accept button on the latest offer (left).');
+  } else if(low==='recap'){
+    if(!threadUuid){ addBubble('Load a thread first.', false); return; }
+    window.open('generate_recap.php?uuid='+encodeURIComponent(threadUuid),'_blank');
+  } else {
+    addBubble('Try: start, offer, counter, accept, recap.');
+  }
+}
+
+function openOfferFormFresh(){
+  currentForm = { role: $('#role').value };
+  resetModalInputs();
+  modal.style.display='flex';
+}
+
+/* ---------- SAVE OFFER ---------- */
+async function saveOffer(){
+  if(!threadUuid){ alert('No thread'); return; }
+  const me = ($('#who').value || '').trim() || 'User';
+  localStorage.setItem('ime_name', me);
+
+  const payload = {
+    thread_uuid: threadUuid,
+    party: me,
+    role: $('#role').value,
+    data: {...currentForm},
+    riders: currentForm.add_clause || ''
+  };
+  const r = await fetch('save_offer.php',{
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify(payload)
+  });
+  const j = await r.json();
+  if(j.status==='success'){
+    addBubble('📤 Offer sent.', true);
+    await loadThread(true);
+  } else alert(j.message||'Error saving offer');
+}
+
+/* ---------- ACCEPT OFFER ---------- */
+async function acceptOffer(offer_id){
+  const me = ($('#who').value || '').trim() || 'User';
+  localStorage.setItem('ime_name', me);
+
+  const r = await fetch('accept_offer.php',{
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({offer_id, party: me})
+  });
+  const j = await r.json();
+  addBubble(j.message || 'Accepted.');
+  if(j.recap_url){ window.open(j.recap_url,'_blank'); }
+  await loadThread(true);
+}
+
+/* ---------- AUTO-SEND ON CLOSE (optional) ---------- */
+document.getElementById('useTerms').addEventListener('click', ()=> {
+  saveOffer();
+});
 </script>
 </body>
 </html>
