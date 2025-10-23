@@ -1,223 +1,197 @@
-# IME AI Negotiation Assistant — Local Setup & Usage
+IME AI Negotiation Assistant — Local Setup & Usage
 
-A lightweight PHP + MySQL project (runs on XAMPP) for guided voyage fixture negotiations between Ship Owners, Charterers, Buyers, and Sellers. Features:
+A complete PHP + MySQL (XAMPP) web project for guided voyage fixture negotiations between Ship Owners, Charterers, Buyers, and Sellers.
+It enables parties to exchange firm offers, counters, and acceptances, track revisions, and generate automated Fixture Recaps (PDF).
 
-- Start/join negotiation threads (UUID)
-- Firm offer → counters → accept → auto PDF recap (Dompdf)
-- 40-question structured offer form (collapsible sections)
-- Agreed-terms panel (only unresolved terms appear in the next offer)
+✳️ Key Features
 
----
+Role-based negotiation flow (Owner / Charterer / Buyer / Seller)
 
-## 1) Prerequisites (Windows)
-- XAMPP (Apache + PHP 8.x + MySQL)
-- Git
-- Composer
+Start or join threads via unique UUID
 
-Verify in Command Prompt:
-```bash
-php -v
-mysql --version
-git --version
-composer -V
-```
+Firm Offer → Counter → Accept → Auto Recap
 
----
+40-question collapsible form grouped by vessel, cargo, laycan, rates, clauses & riders
 
-## 2) Project Location
-Place the project under XAMPP webroot:
-```
-C:\xampp\htdocs\ime-negotiation
-```
-Key files/folders:
-```
-index.html
-create_thread.php
-get_thread.php
-save_offer.php
-accept_offer.php
-generate_recap.php
-db_connect.php
-style.css
-composer.json
-composer.lock
-vendor/    (created by Composer)
-```
+Locked-field system – accepted terms hidden in later counters
 
----
+Two-party sync (open same UUID in two browsers)
 
-## 3) Database Setup
-Open **phpMyAdmin** → create database, e.g. `ime_chat` → run schema:
+Dompdf for downloadable PDF recaps
 
-```sql
-CREATE TABLE IF NOT EXISTS threads (
+Modern chat-style UI with light-blue theme
+
+1️⃣ Prerequisites (Windows)
+Tool	Purpose	Test Command
+XAMPP	Apache + PHP + MySQL	php -v
+Git	Version control	git --version
+Composer	PHP dependencies	composer -V
+2️⃣ Project Directory
+
+Place under C:\xampp\htdocs\ime-negotiation
+
+index.html                → chat UI (frontend)
+db.php / db_connect.php    → DB connection
+create_thread.php          → start thread
+get_thread.php             → fetch offers
+save_offer.php             → save offer/counter
+lock_fields.php            → lock accepted terms
+accept_offer.php           → mark offer accepted
+generate_recap.php         → PDF recap
+logo.png                   → header logo
+vendor/                    → Composer packages
+README.md                  → this guide
+
+3️⃣ Database Setup
+
+Create database ime_chat in phpMyAdmin, then run:
+
+CREATE TABLE threads (
   id INT AUTO_INCREMENT PRIMARY KEY,
-  thread_uuid VARCHAR(60) UNIQUE,
-  title VARCHAR(255) DEFAULT '',
-  created_by VARCHAR(100) DEFAULT '',
-  status ENUM('open','countered','agreed','cancelled') DEFAULT 'open',
+  thread_uuid VARCHAR(64) UNIQUE,
+  title VARCHAR(200),
+  created_by VARCHAR(100),
+  locked_fields LONGTEXT DEFAULT '[]',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS offers (
+CREATE TABLE offers (
   id INT AUTO_INCREMENT PRIMARY KEY,
-  thread_id INT,
-  version INT DEFAULT 1,
+  thread_uuid VARCHAR(64),
+  version INT,
   party VARCHAR(100),
-  role VARCHAR(30),
+  role VARCHAR(100),
   data LONGTEXT,
-  riders TEXT,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
-  FOREIGN KEY (thread_id) REFERENCES threads(id) ON DELETE CASCADE
+  accepted_by VARCHAR(100),
+  accepted_at DATETIME,
+  INDEX(thread_uuid),
+  INDEX(version)
 );
 
-CREATE TABLE IF NOT EXISTS acceptances (
+CREATE TABLE field_accepts (
   id INT AUTO_INCREMENT PRIMARY KEY,
-  offer_id INT,
-  party VARCHAR(100),
-  accepted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
-  FOREIGN KEY (offer_id) REFERENCES offers(id) ON DELETE CASCADE
+  thread_uuid VARCHAR(64),
+  field_name VARCHAR(255),
+  accepted_by VARCHAR(100),
+  accepted_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_field_accept (thread_uuid, field_name)
 );
-```
 
-**Hardening & Indexes (optional but recommended)**
-```sql
--- Charset/engine
-ALTER TABLE threads  CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-ALTER TABLE offers   CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-ALTER TABLE acceptances CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
--- NOT NULLs
-ALTER TABLE threads 
-  MODIFY thread_uuid VARCHAR(60) NOT NULL,
-  MODIFY title VARCHAR(255) NOT NULL DEFAULT '',
-  MODIFY created_by VARCHAR(100) NOT NULL DEFAULT '',
-  MODIFY status ENUM('open','countered','agreed','cancelled') NOT NULL DEFAULT 'open';
+field_accepts enables bilateral locking — a field locks once both parties accept it.
 
-ALTER TABLE offers
-  MODIFY thread_id INT NOT NULL,
-  MODIFY version INT NOT NULL,
-  MODIFY party VARCHAR(100) NOT NULL,
-  MODIFY role VARCHAR(30) NOT NULL,
-  MODIFY riders TEXT NULL;
+4️⃣ Database Connection
 
-ALTER TABLE acceptances
-  MODIFY offer_id INT NOT NULL,
-  MODIFY party VARCHAR(100) NOT NULL;
+db.php
 
--- Uniqueness & indexes
-ALTER TABLE threads
-  ADD UNIQUE KEY uq_threads_uuid (thread_uuid);
-
-ALTER TABLE offers
-  ADD UNIQUE KEY uq_offers_thread_version (thread_id, version),
-  ADD INDEX ix_offers_thread_created (thread_id, created_at),
-  ADD INDEX ix_offers_thread_version (thread_id, version);
-
--- Clean duplicates before unique acceptances key
-UPDATE acceptances SET party = TRIM(party);
-DELETE a
-FROM acceptances a
-JOIN (
-  SELECT offer_id, party, MIN(id) AS keep_id
-  FROM acceptances
-  GROUP BY offer_id, party
-  HAVING COUNT(*) > 1
-) d
-  ON a.offer_id = d.offer_id
- AND a.party    = d.party
-WHERE a.id <> d.keep_id;
-
-ALTER TABLE acceptances
-  ADD UNIQUE KEY uq_accept_once (offer_id, party),
-  ADD INDEX ix_accept_offer (offer_id);
-```
-
----
-
-## 4) Configure DB Connection
-Create `db_connect.php`:
-```php
 <?php
 $host = 'localhost';
 $user = 'root';
 $pass = '';
 $db   = 'ime_chat';
+$pdo = new PDO("mysql:host=$host;dbname=$db;charset=utf8mb4", $user, $pass, [
+  PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+  PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
+]);
+?>
 
-$conn = new mysqli($host, $user, $pass, $db);
-if ($conn->connect_error) die('Connection failed: '.$conn->connect_error);
-if (method_exists($conn, 'set_charset')) $conn->set_charset('utf8mb4');
-```
-
----
-
-## 5) Install Dompdf
-```bash
+5️⃣ Install Dompdf
 cd C:\xampp\htdocs\ime-negotiation
 composer require dompdf/dompdf
-```
-If Composer complains about `zip` or `git`, enable `extension=zip` in `C:\xampp\php\php.ini` and ensure `git --version` works, then re-run.
 
----
 
-## 6) Start Local Server
-Open **XAMPP Control Panel** → Start **Apache** and **MySQL**.
-- App: http://localhost/ime-negotiation/
-- PDF test (optional): http://localhost/ime-negotiation/test_dompdf.php
+If errors → enable extension=zip in php.ini, ensure git --version works, then retry.
 
----
+6️⃣ Run Server
 
-## 7) Using the App (Two-Party Demo)
-1) Enter your **name** and choose **role** → click **start new** → copy **UUID**.
-2) Click **Send Firm Offer** → fill required terms → **Use These Terms** (creates v1).
-3) Open a second tab/window → paste same **UUID** → **join**.
-4) In **offers (history)**: **view** (see JSON), **counter** (prefilled form → submit), **accept**.
-5) Once accepted → **Generate Recap** (PDF opens/new tab).
+Start Apache & MySQL in XAMPP
 
-**Tip:** The left panel shows **Agreed Terms** (auto from last cross-party match). Only unresolved fields appear in the next offer form.
+Visit 👉 http://localhost/ime-negotiation/
 
-**Chat commands** (bottom input):
-```
-start | offer | counter v2 | accept | recap | load th_XXXX
-```
+7️⃣ Demo Usage
 
----
+Party A: enter name + role → Start New → copy UUID
 
-## 8) Git (optional)
-```bash
-cd C:\xampp\htdocs\ime-negotiation
-git init
-git add .
-git commit -m "initial commit"
+Party B: open another browser → paste same UUID → Join
 
-# if your GitHub repo default branch is main
+Party A: offer → fill form → Use These Terms
+
+Party B: see offer → View / Counter / Accept
+
+Locked terms hidden in next form; once agreed → Recap → PDF
+
+8️⃣ Chat Commands
+start | offer | counter | accept | recap | load th_xxxx
+
+9️⃣ Git Commands
+git add -A
+git commit -m "UI light-blue, recap, locking, logo"
+git push
+
+
+If new repo:
+
 git branch -M main
-git remote add origin https://github.com/<you>/<repo>
+git remote add origin https://github.com/KanishkSigar/IME-AI-Chat-.git
 git push -u origin main
 
-# stop tracking vendor
-echo /vendor > .gitignore
-git rm -r --cached vendor
-git commit -m "stop tracking vendor"
-git push
-```
+🔗 Share Your Local App
 
----
+ngrok
 
-## 9) Troubleshooting
-- **Unexpected token '<' ... not valid JSON** → A PHP script emitted HTML errors. Open DevTools → Network → see which endpoint failed → fix PHP errors.
-- **offer not found on view/counter** → Ensure `get_thread.php` returns numeric `id`/`version` (cast in PHP) and frontend casts with `Number()`.
-- **Duplicate unique key error** → Drop or de-dup before re-adding the index (see schema section).
-- **Dompdf missing fonts/zip** → Enable `extension=zip` in `php.ini`; re-run Composer.
+ngrok http 80
 
----
 
-## 10) What’s Inside
-- Collapsible **40-question** form grouped into sections
-- Only unresolved terms are included in next firm offer
-- Versioned offers with view/counter/accept
-- One-click recap generation (PDF)
+Share → https://xxxx-xxxx.ngrok-free.app/ime-negotiation/
+If Apache on 8080 → ngrok http 8080
 
-> For production: add auth, permissions, input validation (prepared statements), and move secrets out of webroot.
+LAN:
+Find IP (ipconfig) → http://<IP>/ime-negotiation/
+
+🔍 Troubleshooting
+Issue	Cause	Fix
+JSON error	PHP echoing HTML error	check Network tab → fix PHP
+View/Counter dead	invalid JSON from get_thread.php	verify headers & encoding
+Recap names wrong	both must join same UUID	reload and re-enter names
+PDF fail	Dompdf missing	composer require dompdf/dompdf
+Offer not refreshing	stale MySQL cache	refresh browser
+🧩 Architecture Overview
+Text Diagram
+ ┌─────────────┐        ┌───────────────┐
+ │ Party A (Owner) │◀───▶│  PHP Backend   │◀───▶│  MySQL DB  │
+ └─────────────┘        └───────────────┘
+         ▲                     │
+         │                     ▼
+ ┌─────────────┐        ┌───────────────┐
+ │ Party B (Charterer)│◀───▶│  Dompdf Recap │
+ └─────────────┘        └───────────────┘
+
+
+Flow:
+1️⃣ Both users join same UUID.
+2️⃣ Each offer/counter saved in DB.
+3️⃣ Locked fields tracked in threads.locked_fields.
+4️⃣ Recap built from latest accepted offer.
+
+Mermaid Diagram
+flowchart TD
+    A[Party A (Owner)] <--> B((PHP Backend))
+    B <--> C[(MySQL Database)]
+    D[Party B (Charterer)] <--> B
+    B --> E[Fixture Recap (PDF via Dompdf)]
+
+✅ Production Checklist
+
+Add auth (login / roles)
+
+Validate input (prepare statements)
+
+Move DB config outside webroot
+
+HTTPS + CSRF tokens
+
+Rate-limit and logging
+
+📄 Credits
+
+Prototype developed for IME Negotiation Automation Platform
