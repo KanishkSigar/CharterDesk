@@ -217,25 +217,7 @@ ngrok http 8080
 
 ---
 
-## 13. Architecture Overview
-
-```text
-Party A (Owner) ⇄ PHP Backend ⇄ MySQL
-Party B (Charterer) ⇄ PHP Backend ⇄ Dompdf Recap
-```
-
-### Mermaid
-```mermaid
-flowchart TD
-    A[Party A (Owner)] <--> B((PHP Backend))
-    B <--> C[(MySQL Database)]
-    D[Party B (Charterer)] <--> B
-    B --> E[Fixture Recap (PDF via Dompdf)]
-```
-
----
-
-## 14. Switching Between HTML and PDF Recap
+## 13. Switching Between HTML and PDF Recap
 
 ### HTML Recap (default)
 Frontend link:
@@ -255,7 +237,7 @@ Switch freely between the two modes—no rebuild required.
 
 ---
 
-## 15. Production Recommendations
+## 14. Production Recommendations
 
 - Add authentication & permissions  
 - Sanitize all user inputs  
