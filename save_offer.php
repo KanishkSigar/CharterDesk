@@ -1,36 +1,44 @@
 <?php
 header('Content-Type: application/json');
-require 'db_connect.php';
+require 'db.php';
 
-$input = json_decode(file_get_contents('php://input'), true);
-if (!$input) { echo json_encode(['status'=>'error','message'=>'invalid json']); exit; }
+$in = json_decode(file_get_contents('php://input'), true);
+$uuid  = $in['thread_uuid'] ?? '';
+$party = $in['party']       ?? 'User';
+$role  = $in['role']        ?? 'Unknown';
+$data  = $in['data']        ?? [];
 
-$uuid  = $input['thread_uuid'] ?? '';
-$party = $input['party'] ?? 'User';
-$role  = $input['role'] ?? 'Charterer';
-$data  = $input['data'] ?? [];
-$riders= $input['riders'] ?? '';
+if (!$uuid) { echo json_encode(["status"=>"error","message"=>"Missing uuid"]); exit; }
+if (!is_array($data)) $data = [];
 
-if ($uuid==='') { echo json_encode(['status'=>'error','message'=>'missing thread']); exit; }
+// fetch locked_fields
+$sth = $pdo->prepare("SELECT locked_fields FROM threads WHERE thread_uuid=?");
+$sth->execute([$uuid]);
+$locked = json_decode(($sth->fetchColumn() ?: '[]'), true);
+if (!is_array($locked)) $locked = [];
 
-$res = $conn->query("SELECT id FROM threads WHERE thread_uuid='".$conn->real_escape_string($uuid)."' LIMIT 1");
-if (!$res || $res->num_rows===0) { echo json_encode(['status'=>'error','message'=>'thread not found']); exit; }
-$row = $res->fetch_assoc(); $thread_id = (int)$row['id'];
+// last version
+$qv = $pdo->prepare("SELECT IFNULL(MAX(version),0) FROM offers WHERE thread_uuid=?");
+$qv->execute([$uuid]);
+$lastVer = (int)$qv->fetchColumn();
+$nextVer = $lastVer + 1;
 
-/* next version */
-$rver = $conn->query("SELECT COALESCE(MAX(version),0)+1 AS v FROM offers WHERE thread_id=$thread_id");
-$vrow = $rver->fetch_assoc(); $version = (int)$vrow['v'];
-
-/* store FULL data json */
-$json = $conn->real_escape_string(json_encode($data, JSON_UNESCAPED_UNICODE));
-$rp   = $conn->real_escape_string($party);
-$rr   = $conn->real_escape_string($role);
-$rd   = $conn->real_escape_string($riders);
-
-$ins = "INSERT INTO offers(thread_id,version,party,role,data,riders,created_at)
-        VALUES ($thread_id,$version,'$rp','$rr','$json','$rd',NOW())";
-if (!$conn->query($ins)) {
-  echo json_encode(['status'=>'error','message'=>'db insert failed']); exit;
+// preserve locked fields from last version
+if ($lastVer > 0 && !empty($locked)) {
+  $qld = $pdo->prepare("SELECT data FROM offers WHERE thread_uuid=? AND version=?");
+  $qld->execute([$uuid, $lastVer]);
+  $lastData = json_decode(($qld->fetchColumn() ?: '{}'), true);
+  if (!is_array($lastData)) $lastData = [];
+  foreach ($locked as $f) {
+    if (array_key_exists($f, $lastData)) {
+      $data[$f] = $lastData[$f];
+    }
+  }
 }
 
-echo json_encode(['status'=>'success','version'=>$version]);
+// insert new offer
+$ins = $pdo->prepare("INSERT INTO offers(thread_uuid, version, party, role, data) VALUES(?,?,?,?,?)");
+$ok  = $ins->execute([$uuid, $nextVer, $party, $role, json_encode($data, JSON_UNESCAPED_UNICODE)]);
+
+echo json_encode($ok ? ["status"=>"success","version"=>$nextVer]
+                     : ["status"=>"error","message"=>"DB insert failed"]);
