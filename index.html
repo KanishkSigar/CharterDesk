@@ -116,7 +116,8 @@
       </select>
       <input id="msg" placeholder='Type: start, offer, counter, accept, recap' />
       <button id="send">Send</button>
-      <button id="btnRecap" class="ghost">Recap</button>
+  <button id="btnRecap" class="ghost">Recap</button>
+  <button id="btnCP" class="ghost">Generate CP</button>
       <button id="quickOffer" class="ghost">Send Firm Offer</button>
     </footer>
   </main>
@@ -623,6 +624,10 @@ $('#btnRecap').onclick = ()=> {
   if(!threadUuid){ alert('Load a thread first.'); return; }
   window.open('generate_recap.php?uuid='+encodeURIComponent(threadUuid),'_blank');
 };
+$('#btnCP').onclick = ()=> {
+  if(!threadUuid){ alert('Load a thread first.'); return; }
+  window.open('generate_cp.php?uuid='+encodeURIComponent(threadUuid),'_blank');
+};
 
 function handleSend(){
   const txt = $('#msg').value.trim();
@@ -645,6 +650,9 @@ function handleSend(){
   } else if(low==='recap'){
     if(!threadUuid){ addBubble('Load a thread first.', false); return; }
     window.open('generate_recap.php?uuid='+encodeURIComponent(threadUuid),'_blank');
+  } else if(low==='cp'){
+    if(!threadUuid){ addBubble('Load a thread first.', false); return; }
+    window.open('generate_cp.php?uuid='+encodeURIComponent(threadUuid),'_blank');
   } else {
     addBubble('Try: start, offer, counter, accept, recap.');
   }

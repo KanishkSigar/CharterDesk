@@ -37,8 +37,14 @@ if ($lastVer > 0 && !empty($locked)) {
 }
 
 // insert new offer
-$ins = $pdo->prepare("INSERT INTO offers(thread_uuid, version, party, role, data) VALUES(?,?,?,?,?)");
-$ok  = $ins->execute([$uuid, $nextVer, $party, $role, json_encode($data, JSON_UNESCAPED_UNICODE)]);
+// lookup thread id (if available) and insert thread_id to satisfy legacy schema
+$sthTid = $pdo->prepare("SELECT id FROM threads WHERE thread_uuid=?");
+$sthTid->execute([$uuid]);
+$threadRow = $sthTid->fetch();
+$thread_id = $threadRow ? (int)$threadRow['id'] : null;
+
+$ins = $pdo->prepare("INSERT INTO offers(thread_id, thread_uuid, version, party, role, data) VALUES(?,?,?,?,?,?)");
+$ok  = $ins->execute([$thread_id, $uuid, $nextVer, $party, $role, json_encode($data, JSON_UNESCAPED_UNICODE)]);
 
 echo json_encode($ok ? ["status"=>"success","version"=>$nextVer]
                      : ["status"=>"error","message"=>"DB insert failed"]);
