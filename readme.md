@@ -61,35 +61,48 @@ README.md              → This file
 Create database `ime_chat` and run:
 
 ```sql
+CREATE DATABASE IF NOT EXISTS ime_negotiation;
+USE ime_negotiation;
+
+CREATE TABLE sessions (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  session_uuid VARCHAR(50) UNIQUE NOT NULL,
+  role VARCHAR(50),
+  vessel VARCHAR(100),
+  cargo VARCHAR(100),
+  quantity VARCHAR(100),
+  laycan VARCHAR(100),
+  freight VARCHAR(100),
+  riders LONGTEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE threads (
   id INT AUTO_INCREMENT PRIMARY KEY,
-  thread_uuid VARCHAR(64) UNIQUE,
-  title VARCHAR(200),
+  thread_uuid VARCHAR(50) UNIQUE NOT NULL,
   created_by VARCHAR(100),
-  locked_fields LONGTEXT DEFAULT '[]',
+  status VARCHAR(20) DEFAULT 'open',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE offers (
   id INT AUTO_INCREMENT PRIMARY KEY,
-  thread_uuid VARCHAR(64),
-  version INT,
+  thread_id INT NOT NULL,
+  version INT DEFAULT 1,
   party VARCHAR(100),
-  role VARCHAR(100),
+  role VARCHAR(50),
   data LONGTEXT,
-  accepted_by VARCHAR(100),
-  accepted_at DATETIME,
-  INDEX(thread_uuid),
-  INDEX(version)
+  riders LONGTEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (thread_id) REFERENCES threads(id)
 );
 
-CREATE TABLE field_accepts (
+CREATE TABLE acceptances (
   id INT AUTO_INCREMENT PRIMARY KEY,
-  thread_uuid VARCHAR(64),
-  field_name VARCHAR(255),
-  accepted_by VARCHAR(100),
-  accepted_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-  UNIQUE KEY uq_field_accept (thread_uuid, field_name)
+  offer_id INT NOT NULL,
+  party VARCHAR(100),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (offer_id) REFERENCES offers(id)
 );
 ```
 
