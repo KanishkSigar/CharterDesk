@@ -3,7 +3,8 @@
 require 'db.php';
 
 $uuid = $_GET['uuid'] ?? '';
-$asPdf = isset($_GET['pdf']) && ($_GET['pdf']=='1' || $_GET['pdf']=='true');
+ $asPdf = isset($_GET['pdf']) && ($_GET['pdf']=='1' || $_GET['pdf']=='true');
+ $asDownload = isset($_GET['download']) && ($_GET['download']=='1' || $_GET['download']=='true');
 if (!$uuid) { echo "Missing uuid"; exit; }
 
 $off = $pdo->prepare("SELECT party, role, version, data, accepted_by, accepted_at
@@ -131,7 +132,11 @@ if ($asPdf) {
     $dompdf->render();
     $pdfOutput = $dompdf->output();
     header('Content-Type: application/pdf');
-    header('Content-Disposition: inline; filename="charter_party_'.htmlspecialchars($uuid).'.pdf"');
+    if ($asDownload) {
+        header('Content-Disposition: attachment; filename="charter_party_'.htmlspecialchars($uuid).'.pdf"');
+    } else {
+        header('Content-Disposition: inline; filename="charter_party_'.htmlspecialchars($uuid).'.pdf"');
+    }
     echo $pdfOutput; exit;
 }
 

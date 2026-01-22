@@ -117,7 +117,9 @@
       <input id="msg" placeholder='Type: start, offer, counter, accept, recap' />
       <button id="send">Send</button>
   <button id="btnRecap" class="ghost">Recap</button>
+  <button id="btnRecapPDF" class="ghost">Recap PDF</button>
   <button id="btnCP" class="ghost">Generate CP</button>
+  <button id="btnCPPDF" class="ghost">CP PDF</button>
       <button id="quickOffer" class="ghost">Send Firm Offer</button>
     </footer>
   </main>
@@ -624,9 +626,17 @@ $('#btnRecap').onclick = ()=> {
   if(!threadUuid){ alert('Load a thread first.'); return; }
   window.open('generate_recap.php?uuid='+encodeURIComponent(threadUuid),'_blank');
 };
+$('#btnRecapPDF').onclick = ()=> {
+  if(!threadUuid){ alert('Load a thread first.'); return; }
+  window.open('generate_recap.php?uuid='+encodeURIComponent(threadUuid)+'&pdf=1','_blank');
+};
 $('#btnCP').onclick = ()=> {
   if(!threadUuid){ alert('Load a thread first.'); return; }
   window.open('generate_cp.php?uuid='+encodeURIComponent(threadUuid),'_blank');
+};
+$('#btnCPPDF').onclick = ()=> {
+  if(!threadUuid){ alert('Load a thread first.'); return; }
+  window.open('generate_cp.php?uuid='+encodeURIComponent(threadUuid)+'&pdf=1','_blank');
 };
 
 function handleSend(){
