@@ -6,11 +6,14 @@
 error_reporting(E_ALL);
 ini_set('display_errors', '1');
 
-$host = '127.0.0.1';
-$port = 3306;
-$user = 'root';
-$pass = ''; // keep empty for XAMPP default
-$dbname = 'ime_negotiation'; // change to the exact database name you created in phpMyAdmin
+// Credentials are read from environment variables, with XAMPP-friendly defaults
+// for local development. Set DB_* in your environment (or a .env loader) for
+// any non-local deployment instead of hardcoding them here.
+$host   = getenv('DB_HOST') ?: '127.0.0.1';
+$port   = (int)(getenv('DB_PORT') ?: 3306);
+$user   = getenv('DB_USER') ?: 'root';
+$pass   = getenv('DB_PASS') !== false ? getenv('DB_PASS') : ''; // empty for XAMPP default
+$dbname = getenv('DB_NAME') ?: 'ime_negotiation';
 
 // Try TCP connection first (use 127.0.0.1 to force TCP instead of UNIX socket)
 $conn = @new mysqli($host, $user, $pass, $dbname, $port);

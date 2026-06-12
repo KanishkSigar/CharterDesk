@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/../db.php';
 
 function columnExists($pdo, $table, $column) {
     $sth = $pdo->prepare("SHOW COLUMNS FROM `{$table}` LIKE ?");

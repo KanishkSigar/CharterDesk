@@ -1,1 +1,17 @@
-"/vendor" 
+# Composer dependencies — install with `composer install`
+/vendor/
+
+# Generated / sample PDFs (recaps are generated at runtime, not committed)
+*.pdf
+
+# Local environment
+.env
+.env.local
+
+# Claude Code local config
+.claude/
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+.vscode/
