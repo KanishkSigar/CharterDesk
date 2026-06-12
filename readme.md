@@ -110,34 +110,37 @@ CREATE TABLE acceptances (
 
 ## 5. Database Connection
 
-**db_connect.php**
+Connection settings live in **`db_connect.php`** and are read from environment
+variables, with XAMPP-friendly defaults for local development:
 
-```php
-<?php
-$host = '127.0.0.1';
-$db   = 'ime_chat';
-$user = 'root';
-$pass = '';
-$dsn  = "mysql:host=$host;dbname=$db;charset=utf8mb4";
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `DB_HOST` | `127.0.0.1` | MySQL host |
+| `DB_PORT` | `3306` | MySQL port |
+| `DB_USER` | `root` | MySQL user |
+| `DB_PASS` | _(empty)_ | MySQL password (XAMPP default is empty) |
+| `DB_NAME` | `ime_negotiation` | Database name |
 
-$pdo = new PDO($dsn, $user, $pass, [
-  PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-  PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
-]);
-```
-Make sure every backend file includes:
+For local XAMPP you can leave the defaults as-is. For any deployment, set the
+`DB_*` variables in your environment instead of hardcoding credentials.
+
+Backend files include the connection with:
 ```php
-require 'db_connect.php';
+require 'db_connect.php';   // exposes $conn (mysqli)
 ```
 
 ---
 
 ## 6. Install Dependencies
 
+Dependencies are managed by Composer and are **not** committed to the repo, so
+install them after cloning:
+
 ```bash
 cd C:\xampp\htdocs\ime-negotiation
-composer require dompdf/dompdf
+composer install
 ```
+This installs everything pinned in `composer.lock` (including `dompdf/dompdf`).
 If you see `missing zip extension`, enable `extension=zip` in `php.ini`.
 
 ---
