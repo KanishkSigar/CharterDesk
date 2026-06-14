@@ -149,10 +149,50 @@ summary{font-weight:700;cursor:pointer;color:var(--navy)}
 .kv .v{white-space:pre-wrap}
 .sep{height:1px;background:var(--line);margin:8px 0}
 
+/* ===========================================================
+   Dashboard
+   =========================================================== */
+.dash{max-width:1100px;margin:0 auto;padding:28px 22px}
+.dash-top{display:flex;align-items:center;gap:14px;margin-bottom:22px}
+.dash-top .brand-name{color:var(--ink)}
+.dash-top .brand-sub{color:var(--muted)}
+.dash-actions{margin-left:auto;display:flex;gap:8px;align-items:center}
+.dash-actions input{width:200px}
+
+.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:22px}
+.tile{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+  padding:18px 20px;box-shadow:var(--shadow)}
+.tile .num{font-size:30px;font-weight:800;letter-spacing:-.02em}
+.tile .lbl{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:700;margin-top:2px}
+.tile.t-total .num{color:var(--navy)}
+.tile.t-neg .num{color:var(--amber)}
+.tile.t-agreed .num{color:var(--accent)}
+
+.toolbar-row{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.toolbar-row input{max-width:340px}
+
+.neg-list{display:flex;flex-direction:column;gap:10px}
+.neg-card{display:grid;grid-template-columns:auto 1fr auto;gap:14px;align-items:center;
+  background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+  padding:14px 16px;box-shadow:var(--shadow);transition:box-shadow .15s,transform .05s}
+.neg-card:hover{box-shadow:var(--shadow-lg)}
+.neg-main .uuid{font-weight:700;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px}
+.neg-main .sub{font-size:12px;color:var(--muted);margin-top:3px}
+.neg-meta{display:flex;gap:18px;align-items:center}
+.neg-stat{text-align:center}
+.neg-stat .n{font-weight:800;font-size:16px}
+.neg-stat .l{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.neg-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.neg-actions button{padding:7px 11px;font-size:12px}
+.empty{text-align:center;color:var(--muted);padding:50px 0}
+
 /* ---------- Responsive ---------- */
 @media (max-width:880px){
   .app{grid-template-columns:1fr;grid-template-rows:auto 1fr}
   .sidebar{flex-direction:column}
   .two{grid-template-columns:1fr}
   .bubble{max-width:90%}
+  .tiles{grid-template-columns:1fr}
+  .neg-card{grid-template-columns:1fr;gap:10px}
+  .neg-meta{justify-content:flex-start}
 }

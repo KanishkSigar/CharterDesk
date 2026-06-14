@@ -460,3 +460,19 @@ async function acceptOffer(offer_id){
 document.getElementById('useTerms').addEventListener('click', ()=> {
   saveOffer();
 });
+
+/* ---------- AUTO-LOAD FROM ?uuid= (deep link from dashboard) ---------- */
+(async function autoLoadFromUrl(){
+  const uuid = new URLSearchParams(location.search).get('uuid');
+  if(!uuid) return;
+  $('#uuidInput').value = uuid;
+  const me = ($('#who').value || '').trim();
+  if(!me){
+    addBubble('Enter your name (left), then click <b>Load</b> to open this negotiation.');
+    return;
+  }
+  threadUuid = uuid;
+  await loadThread();
+  greeting(); startPolling();
+  addBubble('📥 Opened negotiation from dashboard. You’re synced.');
+})();

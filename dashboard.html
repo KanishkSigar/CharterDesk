@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>CharterDesk — Negotiations Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/app.css">
+</head>
+<body>
+<div class="dash">
+  <div class="dash-top">
+    <div class="brand">
+      <div class="brand-mark">CD</div>
+      <div>
+        <div class="brand-name">CharterDesk</div>
+        <div class="brand-sub">Negotiations dashboard</div>
+      </div>
+    </div>
+    <div class="dash-actions">
+      <input id="who" placeholder="Your name" />
+      <button id="btnNew">+ New negotiation</button>
+    </div>
+  </div>
+
+  <div class="tiles">
+    <div class="tile t-total"><div class="num" id="tTotal">0</div><div class="lbl">Total negotiations</div></div>
+    <div class="tile t-neg"><div class="num" id="tNeg">0</div><div class="lbl">Negotiating</div></div>
+    <div class="tile t-agreed"><div class="num" id="tAgreed">0</div><div class="lbl">Agreed</div></div>
+  </div>
+
+  <div class="toolbar-row">
+    <input id="search" placeholder="Search by UUID or creator…" />
+    <button class="btn-ghost" id="btnRefresh">Refresh</button>
+  </div>
+
+  <div id="negList" class="neg-list"></div>
+</div>
+
+<script src="assets/js/dashboard.js"></script>
+</body>
+</html>
