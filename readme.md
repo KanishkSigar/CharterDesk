@@ -1,5 +1,7 @@
-# IME AI Negotiation Assistant  
-_A lightweight AI-assisted negotiation system for maritime fixture deals_
+# CharterDesk  
+_A structured charter-party (CP) negotiation and document-generation tool for maritime fixture deals._
+
+> Built during an internship at **Integrated Maritime Exchange (IME)**.
 
 [![Run Locally](https://img.shields.io/badge/Run-Locally-blue)](#7-running-the-application)
 [![View Recap](https://img.shields.io/badge/View-Recap-green)](#14-switching-between-html-and-pdf-recap)
@@ -9,16 +11,22 @@ _A lightweight AI-assisted negotiation system for maritime fixture deals_
 
 ## 1. Overview
 
-A PHP + MySQL application (runs on XAMPP) for structured, guided voyage fixture negotiations between **Ship Owners**, **Charterers**, **Buyers**, and **Sellers**.
+CharterDesk is a PHP + MySQL application (runs on XAMPP) for structured, guided voyage
+fixture negotiations between **Ship Owners**, **Charterers**, **Buyers**, and **Sellers**.
+Two parties negotiate the ~38 terms of a shipping fixture in versioned offers, lock the
+terms they agree on, and export a finished **Charter Party** or **recap** as HTML or PDF.
 
 **Key Features**
 - Role-based negotiation interface  
 - Create/join threads with unique UUIDs  
 - Firm Offer → Counter → Accept workflow  
-- Collapsible 40-question form for all trade terms  
+- Collapsible ~38-term fixture form (vessel, cargo, laycan, freight, demurrage, laytime, NOR, arbitration, CP form, …)  
 - Locked-field system hides accepted terms  
-- Auto PDF or HTML recap  
-- Two-party live negotiation via shared thread
+- Auto PDF or HTML Charter Party / recap generation (dompdf)  
+- Two-party shared-thread negotiation with live polling
+
+**Planned:** LLM-assisted clause drafting and term explanations (draft riders / force-majeure
+text, explain unfamiliar CP terms, flag unusual terms).
 
 ---
 
