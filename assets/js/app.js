@@ -116,6 +116,20 @@ function getOfferData(o){
 }
 function escapeHtml(s){ return String(s).replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m])); }
 
+/* ---------- DIFF HELPERS (compare offer versions) ---------- */
+function valOf(d, f){ return String((d && d[f] != null) ? d[f] : '').trim(); }
+function changedFields(curData, prevData){
+  if(!prevData) return [];
+  const keys = new Set([...Object.keys(curData||{}), ...Object.keys(prevData||{})]);
+  const out = [];
+  keys.forEach(k=>{ if(valOf(curData,k) !== valOf(prevData,k)) out.push(k); });
+  return out;
+}
+function prevOfferOf(offer_id){
+  const idx = offers.findIndex(o => String(getOfferId(o)) === String(offer_id));
+  return idx > 0 ? offers[idx-1] : null;
+}
+
 /* ---------- OFFER FORM MODAL ---------- */
 const modal = $('#modal'); const closeModal=()=> modal.style.display='none';
 $('#x').onclick = closeModal;
@@ -285,16 +299,22 @@ function renderOffers(){
     return;
   }
 
-  offers.forEach(o=>{
+  offers.forEach((o, idx)=>{
     const id = getOfferId(o);
     const v  = getOfferVersion(o);
     const p  = getOfferParty(o);
     const r  = getOfferRole(o);
 
+    let chgChip = '';
+    if(idx > 0){
+      const n = changedFields(getOfferData(o), getOfferData(offers[idx-1])).length;
+      if(n) chgChip = `<span class="chg-chip">▲ ${n} changed</span>`;
+    }
+
     const d = document.createElement('div');
     d.className='offer-item';
     d.innerHTML = `
-      <div class="offer-head"><span class="ver">v${v}</span> by ${escapeHtml(p)} (${escapeHtml(r)})</div>
+      <div class="offer-head"><span class="ver">v${v}</span> by ${escapeHtml(p)} (${escapeHtml(r)})${chgChip}</div>
       <div class="offer-toolbar">
         <button data-action="see" data-id="${id}">View</button>
         <button class="btn-ghost" data-action="ctr" data-id="${id}">Counter</button>
@@ -330,8 +350,22 @@ function openView(offer_id){
 
   document.getElementById('viewTitle').textContent = `Offer v${v} by ${p} (${r})`;
 
+  const prev = prevOfferOf(offer_id);
+  const prevData = prev ? getOfferData(prev) : null;
+  const prevVer = prev ? getOfferVersion(prev) : null;
+  const changedSet = new Set(changedFields(data, prevData));
+
   const body = document.getElementById('viewBody');
-  body.innerHTML=''; body.setAttribute('data-offer-id', String(offer_id));
+  body.innerHTML=''; body.classList.remove('changed-only');
+  body.setAttribute('data-offer-id', String(offer_id));
+
+  if(prev){
+    const bar = document.createElement('div');
+    bar.className = 'diff-summary';
+    bar.innerHTML = `<span>▲ ${changedSet.size} term(s) changed from v${prevVer}</span>
+      <label style="margin-left:auto"><input type="checkbox" id="diffOnly"> Show changed only</label>`;
+    body.appendChild(bar);
+  }
 
   FIELD_GROUPS.forEach(g=>{
     const det = document.createElement('details');
@@ -339,18 +373,27 @@ function openView(offer_id){
     const rows = g.fields.map(fid=>{
       const val = data[fid] ?? '';
       const locked = lockedFields.includes(fid);
+      const isChg = changedSet.has(fid);
       const valHtml = val ? escapeHtml(String(val)).replace(/\n/g,'<br>') : '<span class="muted">—</span>';
       const badge = locked ? ' <span class="lock-badge">locked</span>' : '';
       const attrs = locked ? 'checked disabled' : '';
-      return `<div class="kv">
+      let wasHtml = '';
+      if(isChg && prevData){
+        const pv = prevData[fid] ?? '';
+        wasHtml = `<div class="was">was: <s>${pv ? escapeHtml(String(pv)) : '—'}</s></div>`;
+      }
+      return `<div class="kv ${isChg ? 'is-changed' : ''}">
         <div class="k">${fieldLabel(fid)}${badge}</div>
-        <div class="v">${valHtml}</div>
+        <div class="v">${valHtml}${wasHtml}</div>
         <div><input type="checkbox" class="lockBox" value="${fid}" ${attrs}></div>
       </div>`;
     }).join('');
     det.innerHTML = `<summary>${g.title}</summary>${rows}`;
     body.appendChild(det);
   });
+
+  const diffOnly = document.getElementById('diffOnly');
+  if(diffOnly){ diffOnly.onchange = ()=> body.classList.toggle('changed-only', diffOnly.checked); }
 
   document.getElementById('viewModal').style.display='flex';
 }
