@@ -17,16 +17,36 @@ Two parties negotiate the ~38 terms of a shipping fixture in versioned offers, l
 terms they agree on, and export a finished **Charter Party** or **recap** as HTML or PDF.
 
 **Key Features**
-- Role-based negotiation interface  
-- Create/join threads with unique UUIDs  
-- Firm Offer → Counter → Accept workflow  
-- Collapsible ~38-term fixture form (vessel, cargo, laycan, freight, demurrage, laytime, NOR, arbitration, CP form, …)  
-- Locked-field system hides accepted terms  
-- Auto PDF or HTML Charter Party / recap generation (dompdf)  
-- Two-party shared-thread negotiation with live polling
+- Negotiations **dashboard** with status (Open / Negotiating / Agreed), per-thread stats and search
+- Role-based, two-party negotiation over a shared thread UUID, with live polling
+- Firm Offer -> Counter -> Accept workflow with **versioned offers**
+- Collapsible ~38-term fixture form (vessel, cargo, laycan, freight, demurrage, laytime, NOR, arbitration, CP form, ...) with **required-field validation**
+- **Version diff**: changed terms are highlighted and show their previous value, with a "show changed only" toggle
+- **Activity timeline** of every offer, counter and acceptance, plus a live status badge
+- Locked-field system: accepted terms carry forward and are protected in counters
+- Branded **Charter Party** and **fixture recap** generation as HTML or PDF (dompdf)
 
 **Planned:** LLM-assisted clause drafting and term explanations (draft riders / force-majeure
 text, explain unfamiliar CP terms, flag unusual terms).
+
+---
+
+## Screenshots
+
+Add screenshots to `docs/screenshots/` and embed them here. Suggested shots:
+
+- `dashboard.png` - the negotiations dashboard (status tiles + cards)
+- `workspace.png` - the negotiation workspace (offers, chat, activity timeline)
+- `offer-form.png` - the firm-offer / counter form with validation
+- `version-diff.png` - the view modal showing changed terms
+- `recap-pdf.png` - a generated recap or charter party PDF
+
+Embed with, for example:
+
+```markdown
+![Dashboard](docs/screenshots/dashboard.png)
+![Workspace](docs/screenshots/workspace.png)
+```
 
 ---
 
@@ -49,70 +69,46 @@ C:\xampp\htdocs\ime-negotiation
 ```
 
 ```
-index.html             → Chat UI & form
-db_connect.php         → DB connection (PDO)
-create_thread.php      → New negotiation
-get_thread.php         → Fetch thread/offers
-save_offer.php         → Save or counter
-lock_fields.php        → Lock agreed fields
-accept_offer.php       → Record acceptance
-generate_recap.php     → HTML recap
-generate_recap_pdf.php → PDF recap
-vendor/                → Composer packages
-README.md              → This file
+dashboard.html        Negotiations dashboard (landing page)
+index.html            Negotiation workspace (offers, timeline, composer)
+assets/
+  css/app.css         Design system + all component styles
+  js/app.js           Workspace logic
+  js/dashboard.js     Dashboard logic
+dashboard_data.php    Aggregated overview feed (read-only)
+create_thread.php     New negotiation
+get_thread.php        Fetch thread + offers
+save_offer.php        Save offer / counter (handles locked fields)
+lock_fields.php       Lock agreed fields
+accept_offer.php      Record acceptance
+generate_cp.php       Charter Party (HTML / PDF)
+generate_recap.php    Fixture recap (HTML / PDF)
+db.php / db_connect.php  DB connection (PDO + mysqli)
+questions.json        Fixture term definitions
+sql/
+  schema.sql          Database schema (run once)
+  seed.sql            Optional demo data
+scripts/              Dev utilities (schema migration / inspection)
+composer.json         PHP dependencies (dompdf)
+readme.md             This file
 ```
 
 ---
 
 ## 4. Database Setup
 
-Create database `ime_chat` and run:
+The full schema lives in [`sql/schema.sql`](sql/schema.sql). Create everything in one step:
 
-```sql
-CREATE DATABASE IF NOT EXISTS ime_negotiation;
-USE ime_negotiation;
+```bash
+# from the project root
+mysql -u root < sql/schema.sql
 
-CREATE TABLE sessions (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  session_uuid VARCHAR(50) UNIQUE NOT NULL,
-  role VARCHAR(50),
-  vessel VARCHAR(100),
-  cargo VARCHAR(100),
-  quantity VARCHAR(100),
-  laycan VARCHAR(100),
-  freight VARCHAR(100),
-  riders LONGTEXT,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE threads (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  thread_uuid VARCHAR(50) UNIQUE NOT NULL,
-  created_by VARCHAR(100),
-  status VARCHAR(20) DEFAULT 'open',
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE offers (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  thread_id INT NOT NULL,
-  version INT DEFAULT 1,
-  party VARCHAR(100),
-  role VARCHAR(50),
-  data LONGTEXT,
-  riders LONGTEXT,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (thread_id) REFERENCES threads(id)
-);
-
-CREATE TABLE acceptances (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  offer_id INT NOT NULL,
-  party VARCHAR(100),
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (offer_id) REFERENCES offers(id)
-);
+# optional: load demo data (one negotiation with an accepted counter)
+mysql -u root < sql/seed.sql
 ```
+
+Or import `sql/schema.sql` (then `sql/seed.sql`) through **phpMyAdmin**. Both target the
+`ime_negotiation` database and are safe to re-run (`CREATE ... IF NOT EXISTS`).
 
 ---
 
@@ -156,10 +152,12 @@ If you see `missing zip extension`, enable `extension=zip` in `php.ini`.
 ## 7. Running the Application
 
 1. Start **Apache** and **MySQL** in XAMPP.  
-2. Open:  
+2. Open the dashboard (recommended entry point):  
    ```
-   http://localhost/ime-negotiation/
+   http://localhost/ime-negotiation/dashboard.html
    ```
+   From there, create or open a negotiation - it deep-links into the workspace
+   (`index.html?uuid=...`). You can also open `index.html` directly.
 
 ---
 
