@@ -27,6 +27,22 @@ const DEFAULT_RIDERS = [
   'Arbitration: London, English law'
 ];
 
+/* ---------- FIELD GROUPS (for grouped view + validation) ---------- */
+const FIELD_GROUPS = [
+  { title:'Role & Vessel',  fields:['role','vessel','gear','class_flag','built_year','last_cargoes','pni','sanctions'] },
+  { title:'Cargo & Ports',  fields:['cargo','qty','imo','load_port','dis_port','max_draft','open_book'] },
+  { title:'Laycan',         fields:['laycan_start','laycan_end','narrow'] },
+  { title:'Rates & Laytime',fields:['freight','load_rate','dis_rate','load_rate_opt','demurrage','despatch','laytime'] },
+  { title:'CP & Riders',    fields:['cp_base','cp_custom','edit_riders','riders','add_clause'] },
+  { title:'Ops & Notices',  fields:['contact','company','email','notes'] },
+  { title:'Other terms',    fields:['commission','nor_policy','holiday_exclusion','fp_clause','doc_window','agent_nomination','eta_notices'] },
+];
+
+/* Minimum terms required before an offer can be sent */
+const REQUIRED = ['vessel','cargo','qty','load_port','dis_port','laycan_start','freight'];
+
+function fieldLabel(fid){ return fid.replace(/_/g,' ').replace(/\b\w/g, c=>c.toUpperCase()); }
+
 /* ---------- HELPERS ---------- */
 const $ = s => document.querySelector(s);
 function addBubble(html, me=false){
@@ -104,7 +120,7 @@ function escapeHtml(s){ return String(s).replace(/[&<>"']/g, m=>({ '&':'&amp;','
 const modal = $('#modal'); const closeModal=()=> modal.style.display='none';
 $('#x').onclick = closeModal;
 
-$('#useTerms').onclick = ()=>{
+function captureForm(){
   currentForm.role = $('#f_role').value;
   currentForm.vessel = $('#vessel').value;
   currentForm.gear = $('#gear').value;
@@ -152,10 +168,41 @@ $('#useTerms').onclick = ()=>{
   currentForm.doc_window = currentForm.doc_window || 'Docs within 4/12 hrs as per port';
   currentForm.agent_nomination = currentForm.agent_nomination || 'Agent at Charterers cost / competitive DA';
   currentForm.eta_notices = currentForm.eta_notices || '5/4/3/2/1 day ETAs';
+}
 
+function openSectionFor(fid){
+  const el = document.getElementById(fid);
+  const det = el && el.closest('details');
+  if(det) det.open = true;
+}
+
+function validateForm(){
+  document.querySelectorAll('#modal .field-error').forEach(el=>el.classList.remove('field-error'));
+  const missing = REQUIRED.filter(f => !String(currentForm[f] || '').trim());
+  if(missing.length){
+    missing.forEach(f=>{ const el = document.getElementById(f); if(el) el.classList.add('field-error'); });
+    openSectionFor(missing[0]);
+    const first = document.getElementById(missing[0]);
+    if(first) first.scrollIntoView({behavior:'smooth', block:'center'});
+    $('#formMsg').textContent = 'Please fill required terms: ' + missing.map(fieldLabel).join(', ');
+    return false;
+  }
+  $('#formMsg').textContent = '';
+  return true;
+}
+
+// Single validated submit: capture -> validate -> (if ok) close + send.
+$('#useTerms').onclick = ()=>{
+  captureForm();
+  if(!validateForm()) return;
   closeModal();
-  addBubble('✅ Terms captured. Click “Send Firm Offer” or type “offer” to send.', true);
+  saveOffer();
 };
+
+// Clear the red error state as soon as the user edits a field.
+$('#modal').addEventListener('input', e=>{
+  if(e.target && e.target.classList) e.target.classList.remove('field-error');
+});
 
 /* ---------- VIEW OFFER MODAL (LOCK FIELDS) ---------- */
 const viewModal = $('#viewModal'); const closeView=()=> viewModal.style.display='none';
@@ -286,20 +333,33 @@ function openView(offer_id){
   const body = document.getElementById('viewBody');
   body.innerHTML=''; body.setAttribute('data-offer-id', String(offer_id));
 
-  FIELD_IDS.forEach(fid=>{
-    const row = document.createElement('div'); row.className='kv';
-    const val = data[fid] ?? '';
-    const checked = lockedFields.includes(fid) ? 'checked' : '';
-    const disabled = lockedFields.includes(fid) ? 'disabled' : '';
-    row.innerHTML = `
-      <div class="k">${fid.replace(/_/g,' ')}</div>
-      <div class="v">${val ? String(val).replace(/\n/g,'<br>') : '<span class="muted">—</span>'}</div>
-      <div><input type="checkbox" class="lockBox" value="${fid}" ${checked} ${disabled}></div>`;
-    body.appendChild(row);
+  FIELD_GROUPS.forEach(g=>{
+    const det = document.createElement('details');
+    det.open = true;
+    const rows = g.fields.map(fid=>{
+      const val = data[fid] ?? '';
+      const locked = lockedFields.includes(fid);
+      const valHtml = val ? escapeHtml(String(val)).replace(/\n/g,'<br>') : '<span class="muted">—</span>';
+      const badge = locked ? ' <span class="lock-badge">locked</span>' : '';
+      const attrs = locked ? 'checked disabled' : '';
+      return `<div class="kv">
+        <div class="k">${fieldLabel(fid)}${badge}</div>
+        <div class="v">${valHtml}</div>
+        <div><input type="checkbox" class="lockBox" value="${fid}" ${attrs}></div>
+      </div>`;
+    }).join('');
+    det.innerHTML = `<summary>${g.title}</summary>${rows}`;
+    body.appendChild(det);
   });
 
   document.getElementById('viewModal').style.display='flex';
 }
+
+/* ---------- VIEW MODAL: select all / clear unlocked checkboxes ---------- */
+$('#btnSelectAll').onclick = ()=>
+  document.querySelectorAll('#viewBody .lockBox:not(:disabled)').forEach(cb=> cb.checked = true);
+$('#btnClearSel').onclick = ()=>
+  document.querySelectorAll('#viewBody .lockBox:not(:disabled)').forEach(cb=> cb.checked = false);
 
 /* ---------- COUNTER (disable locked fields) ---------- */
 function startCounter(offer_id){
@@ -455,11 +515,6 @@ async function acceptOffer(offer_id){
   if(j.recap_url){ window.open(j.recap_url,'_blank'); }
   await loadThread(true);
 }
-
-/* ---------- AUTO-SEND ON CLOSE (optional) ---------- */
-document.getElementById('useTerms').addEventListener('click', ()=> {
-  saveOffer();
-});
 
 /* ---------- AUTO-LOAD FROM ?uuid= (deep link from dashboard) ---------- */
 (async function autoLoadFromUrl(){

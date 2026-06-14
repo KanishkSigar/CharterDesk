@@ -96,7 +96,7 @@
               <option>Seller</option>
             </select>
           </div>
-          <div><label>Vessel Name / TBN</label><input id="vessel" /></div>
+          <div><label>Vessel Name / TBN <span class="req">*</span></label><input id="vessel" /></div>
           <div><label>Gear Type &amp; Capacity</label><input id="gear" placeholder="4 x 30MT cranes, 4 x 12 CBM grabs" /></div>
           <div><label>Class &amp; Flag</label><input id="class_flag" placeholder="DNV / Panama" /></div>
           <div><label>Built Year</label><input id="built_year" placeholder="2012" /></div>
@@ -112,15 +112,15 @@
       <details>
         <summary>Cargo &amp; Ports</summary>
         <div class="two">
-          <div><label>Cargo Type</label>
+          <div><label>Cargo Type <span class="req">*</span></label>
             <select id="cargo">
               <option>Steam Coal</option><option>Iron Ore</option><option>Fertilizer</option><option>Grain</option><option>Other</option>
             </select>
           </div>
-          <div><label>Quantity &amp; Tolerance</label><input id="qty" placeholder="55,000 MT ±10% MOLOO" /></div>
+          <div><label>Quantity &amp; Tolerance <span class="req">*</span></label><input id="qty" placeholder="55,000 MT ±10% MOLOO" /></div>
           <div><label>Lawful/IMO Compliant</label><select id="imo"><option>Yes</option><option>No</option></select></div>
-          <div><label>Load Port (Name/Terminal/SP/SA)</label><input id="load_port" placeholder="Kandla – Adani Terminal (SP/SA)" /></div>
-          <div><label>Discharge Port (Name/Terminal/SP/SA)</label><input id="dis_port" placeholder="Port Qasim – Fauji Terminal (SP/SA)" /></div>
+          <div><label>Load Port (Name/Terminal/SP/SA) <span class="req">*</span></label><input id="load_port" placeholder="Kandla – Adani Terminal (SP/SA)" /></div>
+          <div><label>Discharge Port (Name/Terminal/SP/SA) <span class="req">*</span></label><input id="dis_port" placeholder="Port Qasim – Fauji Terminal (SP/SA)" /></div>
           <div><label>Max Draft Guaranteed at Disport?</label><select id="max_draft"><option>Yes</option><option>No</option></select></div>
           <div><label>Other Ports on Open Book?</label><select id="open_book"><option>No</option><option>Yes</option></select></div>
         </div>
@@ -130,7 +130,7 @@
       <details>
         <summary>Laycan</summary>
         <div class="two">
-          <div><label>Start Date</label><input id="laycan_start" placeholder="15 Oct 2025" /></div>
+          <div><label>Start Date <span class="req">*</span></label><input id="laycan_start" placeholder="15 Oct 2025" /></div>
           <div><label>End Date</label><input id="laycan_end" placeholder="20 Oct 2025" /></div>
           <div><label>Option to Narrow</label><select id="narrow"><option>Yes</option><option>No</option></select></div>
         </div>
@@ -140,7 +140,7 @@
       <details>
         <summary>Rates &amp; Laytime</summary>
         <div class="two">
-          <div><label>Freight</label><input id="freight" placeholder="USD 6.25 PMT FIOST" /></div>
+          <div><label>Freight <span class="req">*</span></label><input id="freight" placeholder="USD 6.25 PMT FIOST" /></div>
           <div><label>Load Rate</label><input id="load_rate" placeholder="8000 MT PWWD SHINC" /></div>
           <div><label>Discharge Rate</label><input id="dis_rate" placeholder="10000 MT PWWD SHINC" /></div>
           <div><label>Load Rate Option</label><input id="load_rate_opt" placeholder="Chopt 10k vs 8k" /></div>
@@ -185,6 +185,7 @@
       </details>
     </div>
     <div class="actions">
+      <div id="formMsg" class="form-msg"></div>
       <button id="useTerms">Use These Terms &amp; Send</button>
     </div>
   </div>
@@ -199,6 +200,10 @@
     </header>
     <div class="body" id="viewBody"></div>
     <div class="actions">
+      <div class="view-tools">
+        <button class="btn-ghost" id="btnSelectAll">Select all</button>
+        <button class="btn-ghost" id="btnClearSel">Clear</button>
+      </div>
       <button class="btn-accent" id="btnLockFields">Accept Selected Terms</button>
     </div>
   </div>

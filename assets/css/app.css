@@ -149,6 +149,15 @@ summary{font-weight:700;cursor:pointer;color:var(--navy)}
 .kv .v{white-space:pre-wrap}
 .sep{height:1px;background:var(--line);margin:8px 0}
 
+/* validation + view helpers */
+.field-error{border-color:#dc2626 !important;box-shadow:0 0 0 3px rgba(220,38,38,.15) !important}
+.req{color:#dc2626}
+.form-msg{font-size:12px;margin-right:auto;align-self:center;color:#dc2626}
+.lock-badge{display:inline-block;font-size:10px;font-weight:700;color:var(--accent);
+  background:#dff5f2;border-radius:6px;padding:1px 6px;text-transform:uppercase;letter-spacing:.04em;margin-left:6px}
+.view-tools{display:flex;gap:6px;margin-right:auto}
+.view-tools button{padding:7px 10px;font-size:12px}
+
 /* ===========================================================
    Dashboard
    =========================================================== */
