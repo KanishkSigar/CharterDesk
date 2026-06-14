@@ -15,7 +15,7 @@ $locked = json_decode($row['locked_fields'] ?: '[]', true);
 if (!is_array($locked)) $locked = [];
 
 // read offers
-$off = $pdo->prepare("SELECT id, version, party, role, data, accepted_by, accepted_at
+$off = $pdo->prepare("SELECT id, version, party, role, data, created_at, accepted_by, accepted_at
                       FROM offers WHERE thread_uuid=? ORDER BY version ASC");
 $off->execute([$uuid]);
 
@@ -29,6 +29,7 @@ while ($r = $off->fetch()) {
     "party"      => $r['party'] ?: 'User',
     "role"       => $r['role']  ?: 'Unknown',
     "data"       => $data,
+    "created_at" => $r['created_at'],
     "accepted_by"=> $r['accepted_by'],
     "accepted_at"=> $r['accepted_at'],
   ];

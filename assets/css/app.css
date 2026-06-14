@@ -95,7 +95,23 @@ button:active{transform:translateY(1px)}
 .pill-agreed{background:#dff5f2;color:var(--accent)}
 .pill-pending{background:#fdf0dd;color:var(--amber)}
 
-/* ---------- Chat / timeline ---------- */
+/* ---------- Work area: chat + activity rail ---------- */
+.work-main{display:grid;grid-template-columns:1fr 300px;min-height:0;overflow:hidden}
+.activity{border-left:1px solid var(--line);background:var(--panel);overflow:auto;padding:16px}
+.activity-head{font-size:12px;text-transform:uppercase;letter-spacing:.07em;font-weight:700;
+  color:var(--muted);margin-bottom:12px}
+.timeline{display:flex;flex-direction:column;gap:0}
+.tl-item{display:grid;grid-template-columns:26px 1fr;gap:10px;padding:0 0 16px 0;position:relative}
+.tl-item::before{content:"";position:absolute;left:12px;top:24px;bottom:-2px;width:2px;background:var(--line)}
+.tl-item:last-child::before{display:none}
+.tl-icon{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;
+  background:#e6f1fb;color:var(--brand);font-size:13px;z-index:1}
+.tl-item.ok .tl-icon{background:#dff5f2;color:var(--accent)}
+.tl-title{font-weight:700;font-size:13px}
+.tl-sub{font-size:12px;color:var(--muted)}
+.tl-time{font-size:11px;color:#94a3b8;margin-top:2px}
+
+/* ---------- Chat ---------- */
 .chat{padding:22px;overflow:auto;display:flex;flex-direction:column;gap:12px}
 .bubble{
   background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px 14px;
@@ -216,4 +232,6 @@ summary{font-weight:700;cursor:pointer;color:var(--navy)}
   .tiles{grid-template-columns:1fr}
   .neg-card{grid-template-columns:1fr;gap:10px}
   .neg-meta{justify-content:flex-start}
+  .work-main{grid-template-columns:1fr}
+  .activity{border-left:0;border-top:1px solid var(--line)}
 }

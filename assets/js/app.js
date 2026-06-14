@@ -55,6 +55,46 @@ function addBubble(html, me=false){
 function setThreadInfo(){
   $('#threadInfo').textContent = threadUuid ? `Thread: ${threadUuid}` : 'No thread yet.';
 }
+
+/* ---------- STATUS BADGE + ACTIVITY TIMELINE ---------- */
+function fmtTime(s){
+  if(!s) return '';
+  const d = new Date(String(s).replace(' ', 'T'));
+  return isNaN(d) ? s : d.toLocaleString(undefined, { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' });
+}
+function updateStatusBadge(){
+  const el = $('#statusBadge'); if(!el) return;
+  if(!threadUuid){ el.className='pill pill-open'; el.textContent='No thread'; return; }
+  if(offers.some(o => o.accepted_at)){ el.className='pill pill-agreed';  el.textContent='Agreed'; }
+  else if(offers.length){           el.className='pill pill-pending'; el.textContent='Negotiating'; }
+  else {                            el.className='pill pill-open';    el.textContent='Open'; }
+}
+function renderTimeline(){
+  const tl = $('#timeline'); if(!tl) return;
+  if(!threadUuid){ tl.innerHTML='<div class="muted">No negotiation loaded.</div>'; return; }
+  if(!offers.length){ tl.innerHTML='<div class="muted">No activity yet.</div>'; return; }
+
+  const events = [];
+  offers.forEach(o=>{
+    const v = getOfferVersion(o), p = getOfferParty(o), r = getOfferRole(o);
+    events.push({ t:o.created_at, icon: v>1?'↺':'📄', title:`${v>1?'Counter':'Firm offer'} v${v}`, sub:`${p} (${r})` });
+    if(o.accepted_at){
+      events.push({ t:o.accepted_at, icon:'✓', title:`Accepted v${v}`, sub:`by ${o.accepted_by || '—'}`, ok:true });
+    }
+  });
+  events.sort((a,b)=> new Date(String(b.t||0).replace(' ','T')) - new Date(String(a.t||0).replace(' ','T')));
+
+  tl.innerHTML = events.map(e=>`
+    <div class="tl-item ${e.ok?'ok':''}">
+      <div class="tl-icon">${e.icon}</div>
+      <div class="tl-body">
+        <div class="tl-title">${escapeHtml(e.title)}</div>
+        <div class="tl-sub">${escapeHtml(e.sub)}</div>
+        <div class="tl-time">${escapeHtml(fmtTime(e.t))}</div>
+      </div>
+    </div>`).join('');
+}
+function refreshMeta(){ updateStatusBadge(); renderTimeline(); }
 function startPolling(){
   stopPolling();
   pollTimer = setInterval(async ()=>{
@@ -256,7 +296,7 @@ $('#btnNew').onclick = async ()=>{
   const j = await r.json();
   if(j.status==='success'){
     threadUuid = j.thread_uuid; offers = []; lockedFields = [];
-    setThreadInfo(); $('#offersList').innerHTML=''; greeting(); startPolling();
+    setThreadInfo(); $('#offersList').innerHTML=''; greeting(); startPolling(); refreshMeta();
     addBubble('🆕 Thread created. Share the UUID with counterparty to join.');
   }else alert(j.message||'Failed to create thread');
 };
@@ -284,6 +324,7 @@ async function loadThread(silent=false){
     lockedFields = j.locked_fields || [];
     setThreadInfo();
     renderOffers();
+    refreshMeta();
   }catch(e){
     if(!silent) console.error(e);
   }
@@ -574,3 +615,6 @@ async function acceptOffer(offer_id){
   greeting(); startPolling();
   addBubble('📥 Opened negotiation from dashboard. You’re synced.');
 })();
+
+/* ---------- INITIAL META STATE ---------- */
+refreshMeta();

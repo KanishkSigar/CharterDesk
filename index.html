@@ -51,11 +51,18 @@
         <div class="topbar-sub">Use the same Thread UUID in both browsers to negotiate live</div>
       </div>
       <div class="topbar-right">
+        <span class="pill pill-open" id="statusBadge">No thread</span>
         <a class="btn-ghost" href="dashboard.html" style="text-decoration:none">← Dashboard</a>
       </div>
     </header>
 
-    <section id="chat" class="chat"></section>
+    <div class="work-main">
+      <section id="chat" class="chat"></section>
+      <aside class="activity">
+        <div class="activity-head">Activity</div>
+        <div id="timeline" class="timeline"></div>
+      </aside>
+    </div>
 
     <footer id="composer" class="composer">
       <select id="role" title="Your role">
