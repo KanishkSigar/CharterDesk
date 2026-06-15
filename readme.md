@@ -33,20 +33,25 @@ text, explain unfamiliar CP terms, flag unusual terms).
 
 ## Screenshots
 
-Add screenshots to `docs/screenshots/` and embed them here. Suggested shots:
+**Negotiations dashboard** - status tiles, per-thread stats, search:
 
-- `dashboard.png` - the negotiations dashboard (status tiles + cards)
-- `workspace.png` - the negotiation workspace (offers, chat, activity timeline)
-- `offer-form.png` - the firm-offer / counter form with validation
-- `version-diff.png` - the view modal showing changed terms
-- `recap-pdf.png` - a generated recap or charter party PDF
-
-Embed with, for example:
-
-```markdown
 ![Dashboard](docs/screenshots/dashboard.png)
+
+**Negotiation workspace** - offers, activity timeline, live status badge:
+
 ![Workspace](docs/screenshots/workspace.png)
-```
+
+**Version diff** - changed terms highlighted with their previous value, plus locked-term badges:
+
+![Version diff](docs/screenshots/version-diff.png)
+
+**Firm-offer / counter form** - grouped sections with required-field validation:
+
+![Offer form](docs/screenshots/offer-form.png)
+
+**Generated fixture recap** (HTML / PDF via dompdf):
+
+![Recap](docs/screenshots/recap.png)
 
 ---
 
