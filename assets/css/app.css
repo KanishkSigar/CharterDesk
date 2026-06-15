@@ -26,6 +26,15 @@
 
 *{box-sizing:border-box}
 html,body{height:100%}
+
+/* ---------- Toasts ---------- */
+.toast-wrap{position:fixed;right:18px;bottom:18px;display:flex;flex-direction:column;gap:10px;z-index:9999}
+.toast{min-width:220px;max-width:360px;padding:12px 14px;border-radius:11px;color:#fff;font-size:13px;font-weight:600;
+  box-shadow:0 12px 30px rgba(11,36,64,.25);opacity:0;transform:translateY(10px);transition:opacity .22s ease,transform .22s ease}
+.toast.show{opacity:1;transform:none}
+.toast-info{background:linear-gradient(135deg,#0b7cb8,#0b6fa4)}
+.toast-success{background:linear-gradient(135deg,#13b3b0,#0ea5a3)}
+.toast-error{background:linear-gradient(135deg,#e0533f,#c53b3b)}
 body{
   margin:0;font-family:Inter,system-ui,Segoe UI,Arial,sans-serif;
   background:var(--bg-grad);background-attachment:fixed;color:var(--ink);
