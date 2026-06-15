@@ -24,7 +24,10 @@ function fmtDate(s){
 })();
 
 /* ---------- load + render ---------- */
+function skeletons(n){ let s=''; for(let i=0;i<n;i++) s+='<div class="skeleton skel-card"></div>'; return s; }
+
 async function load(){
+  $('#negList').innerHTML = skeletons(3);
   try{
     const r = await fetch('dashboard_data.php');
     const j = await r.json();

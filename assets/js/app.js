@@ -316,6 +316,7 @@ $('#btnLoad').onclick = async ()=>{
 /* ---------- LOAD THREAD ---------- */
 async function loadThread(silent=false){
   if(!threadUuid) return;
+  if(!silent){ $('#offersList').innerHTML = '<div class="skeleton skel-offer"></div><div class="skeleton skel-offer"></div>'; }
   try{
     const r = await fetch('get_thread.php?uuid='+encodeURIComponent(threadUuid));
     const j = await r.json();
