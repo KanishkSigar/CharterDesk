@@ -94,7 +94,22 @@ function renderTimeline(){
       </div>
     </div>`).join('');
 }
-function refreshMeta(){ updateStatusBadge(); renderTimeline(); }
+function renderSummary(){
+  const el = $('#dealSummary'); if(!el) return;
+  if(!offers.length){ el.innerHTML = '<div class="muted">No terms yet.</div>'; return; }
+  const d = getOfferData(offers[offers.length-1]);
+  const rows = [
+    ['Cargo', d.cargo],
+    ['Quantity', d.qty],
+    ['Freight', d.freight],
+    ['Laycan', [d.laycan_start, d.laycan_end].filter(Boolean).join(' - ')],
+    ['Demurrage', d.demurrage],
+  ];
+  el.innerHTML = rows.map(([k,v]) =>
+    `<div class="ds-row"><span class="ds-k">${k}</span><span class="ds-v">${v ? escapeHtml(String(v)) : '<span class="muted">—</span>'}</span></div>`
+  ).join('');
+}
+function refreshMeta(){ updateStatusBadge(); renderSummary(); renderTimeline(); }
 function startPolling(){
   stopPolling();
   pollTimer = setInterval(async ()=>{
@@ -353,10 +368,14 @@ function renderOffers(){
       if(n) chgChip = `<span class="chg-chip">▲ ${n} changed</span>`;
     }
 
+    const fr = (getOfferData(o).freight || '').toString();
+    const termsLine = fr ? `<div class="offer-terms">${escapeHtml(fr)}</div>` : '';
+
     const d = document.createElement('div');
     d.className='offer-item';
     d.innerHTML = `
       <div class="offer-head"><span class="ver">v${v}</span> by ${escapeHtml(p)} (${escapeHtml(r)})${chgChip}</div>
+      ${termsLine}
       <div class="offer-toolbar">
         <button data-action="see" data-id="${id}">View</button>
         <button class="btn-ghost" data-action="ctr" data-id="${id}">Counter</button>

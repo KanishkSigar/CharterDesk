@@ -162,8 +162,16 @@ button:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(11,111,164,.35)}
 .offer-item:hover{transform:translateY(-1px);box-shadow:0 8px 18px rgba(0,0,0,.18)}
 .offer-item .offer-head{display:flex;align-items:center;gap:6px;font-size:13px}
 .offer-item .ver{font-weight:800;color:var(--brand)}
+.offer-terms{margin-top:5px;font-size:12px;color:var(--brand);font-weight:600}
 .offer-toolbar{margin-top:9px;display:flex;gap:6px;flex-wrap:wrap}
 .offer-toolbar button{padding:6px 10px;font-size:12px}
+
+/* deal summary panel */
+.deal-summary{display:flex;flex-direction:column;gap:0}
+.ds-row{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px dashed var(--line);font-size:12px}
+.ds-row:last-child{border-bottom:0}
+.ds-k{color:var(--muted);font-weight:600}
+.ds-v{font-weight:700;text-align:right;max-width:60%}
 
 /* ---------- Composer ---------- */
 .composer{
