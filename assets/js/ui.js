@@ -27,4 +27,23 @@
 
   // Route legacy alert() calls through the toast system (most are warnings/errors).
   window.alert = function (m) { window.toast(m, 'error'); };
+
+  /* ---------- Theme (light/dark) ---------- */
+  const THEME_KEY = 'cd_theme';
+  if (localStorage.getItem(THEME_KEY) === 'dark') {
+    document.documentElement.setAttribute('data-theme', 'dark');
+  }
+  function isDark(){ return document.documentElement.getAttribute('data-theme') === 'dark'; }
+  function syncToggles(){
+    document.querySelectorAll('[data-theme-toggle]').forEach(b => { b.textContent = isDark() ? '☀️' : '🌙'; });
+  }
+  window.toggleTheme = function () {
+    if (isDark()) { document.documentElement.removeAttribute('data-theme'); localStorage.setItem(THEME_KEY, 'light'); }
+    else { document.documentElement.setAttribute('data-theme', 'dark'); localStorage.setItem(THEME_KEY, 'dark'); }
+    syncToggles();
+  };
+  document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('[data-theme-toggle]').forEach(b => { b.onclick = window.toggleTheme; });
+    syncToggles();
+  });
 })();
