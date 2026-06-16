@@ -414,7 +414,7 @@ document.getElementById('offersList').addEventListener('click', (e)=>{
 });
 
 /* ---------- VIEW OFFER ---------- */
-function openView(offer_id){
+function openView(offer_id, baseId){
   const off = offers.find(o => String(getOfferId(o)) === String(offer_id));
   if(!off){ alert('Offer not found (id '+offer_id+'). Check API keys.'); return; }
 
@@ -425,19 +425,28 @@ function openView(offer_id){
 
   document.getElementById('viewTitle').textContent = `Offer v${v} by ${p} (${r})`;
 
-  const prev = prevOfferOf(offer_id);
-  const prevData = prev ? getOfferData(prev) : null;
-  const prevVer = prev ? getOfferVersion(prev) : null;
+  // comparison base: explicit selection, else the immediately previous version
+  const idx = offers.findIndex(o => String(getOfferId(o)) === String(offer_id));
+  const base = (baseId != null)
+    ? offers.find(o => String(getOfferId(o)) === String(baseId))
+    : (idx > 0 ? offers[idx-1] : null);
+  const prevData = base ? getOfferData(base) : null;
   const changedSet = new Set(changedFields(data, prevData));
 
   const body = document.getElementById('viewBody');
   body.innerHTML=''; body.classList.remove('changed-only');
   body.setAttribute('data-offer-id', String(offer_id));
 
-  if(prev){
+  if(base){
+    const opts = offers.filter(o => String(getOfferId(o)) !== String(offer_id)).map(o=>{
+      const oid = getOfferId(o), ov = getOfferVersion(o), op = getOfferParty(o);
+      const sel = String(oid) === String(getOfferId(base)) ? 'selected' : '';
+      return `<option value="${oid}" ${sel}>v${ov} (${escapeHtml(op)})</option>`;
+    }).join('');
     const bar = document.createElement('div');
     bar.className = 'diff-summary';
-    bar.innerHTML = `<span>▲ ${changedSet.size} term(s) changed from v${prevVer}</span>
+    bar.innerHTML = `<span>▲ ${changedSet.size} changed vs</span>
+      <select id="cmpBase" style="width:auto">${opts}</select>
       <label style="margin-left:auto"><input type="checkbox" id="diffOnly"> Show changed only</label>`;
     body.appendChild(bar);
   }
@@ -469,6 +478,8 @@ function openView(offer_id){
 
   const diffOnly = document.getElementById('diffOnly');
   if(diffOnly){ diffOnly.onchange = ()=> body.classList.toggle('changed-only', diffOnly.checked); }
+  const cmp = document.getElementById('cmpBase');
+  if(cmp){ cmp.onchange = ()=> openView(offer_id, cmp.value); }
 
   document.getElementById('viewModal').style.display='flex';
 }
