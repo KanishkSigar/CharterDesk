@@ -247,13 +247,27 @@ function openSectionFor(fid){
 
 function validateForm(){
   document.querySelectorAll('#modal .field-error').forEach(el=>el.classList.remove('field-error'));
-  const missing = REQUIRED.filter(f => !String(currentForm[f] || '').trim());
-  if(missing.length){
-    missing.forEach(f=>{ const el = document.getElementById(f); if(el) el.classList.add('field-error'); });
-    openSectionFor(missing[0]);
-    const first = document.getElementById(missing[0]);
+  const issues = [], bad = [];
+
+  // required terms
+  REQUIRED.forEach(f=>{
+    if(!String(currentForm[f] || '').trim()){ issues.push('Missing ' + fieldLabel(f)); bad.push(f); }
+  });
+  // value sanity: these should contain a number
+  [['freight','Freight'], ['qty','Quantity']].forEach(([f,l])=>{
+    const v = String(currentForm[f] || '').trim();
+    if(v && !/\d/.test(v)){ issues.push(l + ' should include a number'); bad.push(f); }
+  });
+  // email format (optional field)
+  const email = String(currentForm.email || '').trim();
+  if(email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ issues.push('Email looks invalid'); bad.push('email'); }
+
+  if(issues.length){
+    bad.forEach(f=>{ const el = document.getElementById(f); if(el) el.classList.add('field-error'); });
+    openSectionFor(bad[0]);
+    const first = document.getElementById(bad[0]);
     if(first) first.scrollIntoView({behavior:'smooth', block:'center'});
-    $('#formMsg').textContent = 'Please fill required terms: ' + missing.map(fieldLabel).join(', ');
+    $('#formMsg').textContent = issues.join(' · ');
     return false;
   }
   $('#formMsg').textContent = '';
