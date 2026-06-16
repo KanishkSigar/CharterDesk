@@ -247,6 +247,12 @@ summary{font-weight:700;cursor:pointer;color:var(--navy)}
 
 .toolbar-row{display:flex;align-items:center;gap:10px;margin-bottom:12px}
 .toolbar-row input{max-width:340px}
+.toolbar-row select{width:auto}
+.filter-chips{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+.fchip{background:#fff;color:var(--muted);border:1px solid var(--line);box-shadow:none;
+  padding:7px 14px;font-size:12px;font-weight:700;border-radius:999px}
+.fchip:hover{filter:none;background:#f1f6fc;transform:none;box-shadow:none}
+.fchip.active{background:var(--brand-grad);color:#fff;border-color:transparent}
 
 .neg-list{display:flex;flex-direction:column;gap:10px}
 .neg-card{display:grid;grid-template-columns:auto 1fr auto;gap:14px;align-items:center;

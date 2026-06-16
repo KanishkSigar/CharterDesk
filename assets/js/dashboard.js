@@ -1,6 +1,8 @@
 /* CharterDesk — dashboard logic */
 const $ = s => document.querySelector(s);
 let allThreads = [];
+let currentFilter = 'all';
+let currentSort = 'newest';
 
 const STATE_PILL = {
   open:        { cls: 'pill-open',    label: 'Open' },
@@ -48,9 +50,12 @@ function renderTiles(){
 
 function renderList(){
   const q = ($('#search').value || '').toLowerCase().trim();
-  const rows = allThreads.filter(t =>
-    !q || (t.thread_uuid||'').toLowerCase().includes(q) || (t.created_by||'').toLowerCase().includes(q)
+  let rows = allThreads.filter(t =>
+    (currentFilter === 'all' || t.state === currentFilter) &&
+    (!q || (t.thread_uuid||'').toLowerCase().includes(q) || (t.created_by||'').toLowerCase().includes(q))
   );
+  if(currentSort === 'oldest')      rows = rows.slice().reverse();        // backend is newest-first
+  else if(currentSort === 'offers') rows = rows.slice().sort((a,b)=> b.offers - a.offers);
 
   const pane = $('#negList');
   if(rows.length === 0){
@@ -110,5 +115,13 @@ $('#btnNew').onclick = async ()=>{
 
 $('#btnRefresh').onclick = load;
 $('#search').addEventListener('input', renderList);
+$('#sort').addEventListener('change', e => { currentSort = e.target.value; renderList(); });
+$('#filterChips').addEventListener('click', e => {
+  const b = e.target.closest('.fchip'); if(!b) return;
+  document.querySelectorAll('.fchip').forEach(c => c.classList.remove('active'));
+  b.classList.add('active');
+  currentFilter = b.dataset.f;
+  renderList();
+});
 
 load();
