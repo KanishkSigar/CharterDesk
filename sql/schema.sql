@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS threads (
   id            INT AUTO_INCREMENT PRIMARY KEY,
   thread_uuid   VARCHAR(64) UNIQUE NOT NULL,
   created_by    VARCHAR(100),
+  title         VARCHAR(160) DEFAULT 'Negotiation',
   status        VARCHAR(20) DEFAULT 'open',
   locked_fields LONGTEXT,                       -- JSON array of locked field ids
   created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP

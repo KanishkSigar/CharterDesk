@@ -5,14 +5,15 @@ require 'db.php';
 $uuid = $_GET['uuid'] ?? '';
 if (!$uuid) { echo json_encode(["status"=>"error","message"=>"Missing uuid"]); exit; }
 
-// read locked fields
-$st = $pdo->prepare("SELECT locked_fields FROM threads WHERE thread_uuid=?");
+// read thread meta (locked fields + title)
+$st = $pdo->prepare("SELECT locked_fields, title FROM threads WHERE thread_uuid=?");
 $st->execute([$uuid]);
 $row = $st->fetch();
 if (!$row) { echo json_encode(["status"=>"error","message"=>"Thread not found"]); exit; }
 
 $locked = json_decode($row['locked_fields'] ?: '[]', true);
 if (!is_array($locked)) $locked = [];
+$title = $row['title'] ?: 'Negotiation';
 
 // read offers
 $off = $pdo->prepare("SELECT id, version, party, role, data, created_at, accepted_by, accepted_at
@@ -37,6 +38,7 @@ while ($r = $off->fetch()) {
 
 echo json_encode([
   "status"        => "success",
+  "title"         => $title,
   "locked_fields" => $locked,
   "offers"        => $out
 ]);

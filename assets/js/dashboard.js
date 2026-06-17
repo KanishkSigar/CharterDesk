@@ -70,8 +70,8 @@ function renderList(){
       <div class="neg-card">
         <span class="pill ${pill.cls}">${pill.label}</span>
         <div class="neg-main">
-          <div class="uuid">${uuid}</div>
-          <div class="sub">by ${escapeHtml(t.created_by||'Unknown')} · ${fmtDate(t.created_at)}</div>
+          <div class="neg-title">${escapeHtml(t.title || 'Negotiation')}</div>
+          <div class="sub"><span class="uuid">${uuid}</span> · by ${escapeHtml(t.created_by||'Unknown')} · ${fmtDate(t.created_at)}</div>
         </div>
         <div class="neg-meta">
           <div class="neg-stat"><div class="n">${t.offers}</div><div class="l">offers</div></div>
@@ -101,9 +101,11 @@ $('#btnNew').onclick = async ()=>{
   const me = ($('#who').value || '').trim();
   if(!me){ alert('Enter your name first.'); return; }
   localStorage.setItem('ime_name', me);
+  const title = (prompt('Name this negotiation (e.g. Coal: Kandla to Qasim)', 'New fixture') || '').trim();
+  if(title === null) return; // cancelled
   const fd = new FormData();
   fd.append('created_by', me);
-  fd.append('title', 'Negotiation');
+  fd.append('title', title || 'Negotiation');
   const r = await fetch('create_thread.php', { method:'POST', body: fd });
   const j = await r.json();
   if(j.status === 'success'){

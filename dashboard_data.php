@@ -3,13 +3,13 @@
 header('Content-Type: application/json');
 require 'db.php';
 
-$sql = "SELECT t.thread_uuid, t.created_by, t.status, t.created_at, t.locked_fields,
+$sql = "SELECT t.thread_uuid, t.created_by, t.status, t.title, t.created_at, t.locked_fields,
                COUNT(o.id) AS offer_count,
                COALESCE(MAX(o.version), 0) AS latest_version,
                COALESCE(SUM(CASE WHEN o.accepted_at IS NOT NULL THEN 1 ELSE 0 END), 0) AS accepted_count
         FROM threads t
         LEFT JOIN offers o ON o.thread_uuid = t.thread_uuid
-        GROUP BY t.id, t.thread_uuid, t.created_by, t.status, t.created_at, t.locked_fields
+        GROUP BY t.id, t.thread_uuid, t.created_by, t.status, t.title, t.created_at, t.locked_fields
         ORDER BY t.created_at DESC";
 
 try {
@@ -33,6 +33,7 @@ foreach ($rows as $r) {
 
     $out[] = [
         'thread_uuid'    => $r['thread_uuid'],
+        'title'          => $r['title'] ?: 'Negotiation',
         'created_by'     => $r['created_by'],
         'created_at'     => $r['created_at'],
         'offers'         => $offers,

@@ -269,8 +269,9 @@ summary{font-weight:700;cursor:pointer;color:var(--navy)}
 .neg-card:hover{box-shadow:0 16px 34px rgba(11,36,64,.14);transform:translateY(-2px)}
 .neg-card:has(.pill-agreed){border-left-color:var(--accent)}
 .neg-card:has(.pill-pending){border-left-color:var(--amber)}
-.neg-main .uuid{font-weight:700;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px}
+.neg-title{font-weight:700;font-size:15px;color:var(--ink)}
 .neg-main .sub{font-size:12px;color:var(--muted);margin-top:3px}
+.neg-main .sub .uuid{font-family:ui-monospace,Menlo,Consolas,monospace;font-weight:600}
 .neg-meta{display:flex;gap:18px;align-items:center}
 .neg-stat{text-align:center}
 .neg-stat .n{font-weight:800;font-size:16px}

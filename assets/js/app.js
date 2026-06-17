@@ -5,6 +5,7 @@ let lockedFields = []; // stored in threads.locked_fields
 let currentForm = {};
 let counterFromOfferId = null;
 let pollTimer = null;
+let threadTitle = '';
 
 /* ---------- FIELD IDS (40) ---------- */
 const FIELD_IDS = [
@@ -53,7 +54,8 @@ function addBubble(html, me=false){
   $('#chat').scrollTop = $('#chat').scrollHeight;
 }
 function setThreadInfo(){
-  $('#threadInfo').textContent = threadUuid ? `Thread: ${threadUuid}` : 'No thread yet.';
+  if(!threadUuid){ $('#threadInfo').textContent = 'No thread yet.'; return; }
+  $('#threadInfo').textContent = threadTitle ? `${threadTitle} — ${threadUuid}` : `Thread: ${threadUuid}`;
 }
 
 /* ---------- STATUS BADGE + ACTIVITY TIMELINE ---------- */
@@ -352,6 +354,7 @@ async function loadThread(silent=false){
     if(j.status!=='success'){ if(!silent) alert(j.message||'Load failed'); return; }
     offers = j.offers || [];
     lockedFields = j.locked_fields || [];
+    threadTitle = j.title || '';
     setThreadInfo();
     renderOffers();
     refreshMeta();
