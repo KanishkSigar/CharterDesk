@@ -112,15 +112,23 @@ function renderSummary(){
   ).join('');
 }
 function refreshMeta(){ updateStatusBadge(); renderSummary(); renderTimeline(); }
+let lastSig = null;
 function startPolling(){
   stopPolling();
+  lastSig = null;
   pollTimer = setInterval(async ()=>{
     if(!threadUuid) return;
-    const beforeCnt = offers.length;
-    await loadThread(true);
-    if(offers.length !== beforeCnt){
-      addBubble('🔔 New activity detected. Offers list updated.');
-    }
+    try{
+      const r = await fetch('poll.php?uuid='+encodeURIComponent(threadUuid));
+      const j = await r.json();
+      if(j.status !== 'success') return;
+      if(lastSig === null){ lastSig = j.sig; return; }   // first tick = baseline
+      if(j.sig !== lastSig){                              // something changed -> full reload
+        lastSig = j.sig;
+        await loadThread(true);
+        addBubble('🔔 New activity detected. Updated.');
+      }
+    }catch(e){ /* offline / server down: stay quiet */ }
   }, 4000);
 }
 function stopPolling(){ if(pollTimer){ clearInterval(pollTimer); pollTimer=null; } }
