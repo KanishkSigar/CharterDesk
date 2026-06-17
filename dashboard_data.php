@@ -27,9 +27,10 @@ foreach ($rows as $r) {
     $offers   = (int)$r['offer_count'];
     $accepted = (int)$r['accepted_count'];
 
-    if ($accepted > 0)      $state = 'agreed';
-    elseif ($offers > 0)    $state = 'negotiating';
-    else                    $state = 'open';
+    if ($r['status'] === 'archived') $state = 'archived';
+    elseif ($accepted > 0)           $state = 'agreed';
+    elseif ($offers > 0)             $state = 'negotiating';
+    else                             $state = 'open';
 
     $out[] = [
         'thread_uuid'    => $r['thread_uuid'],

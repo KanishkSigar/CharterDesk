@@ -5,9 +5,10 @@ let currentFilter = 'all';
 let currentSort = 'newest';
 
 const STATE_PILL = {
-  open:        { cls: 'pill-open',    label: 'Open' },
-  negotiating: { cls: 'pill-pending', label: 'Negotiating' },
-  agreed:      { cls: 'pill-agreed',  label: 'Agreed' },
+  open:        { cls: 'pill-open',     label: 'Open' },
+  negotiating: { cls: 'pill-pending',  label: 'Negotiating' },
+  agreed:      { cls: 'pill-agreed',   label: 'Agreed' },
+  archived:    { cls: 'pill-archived', label: 'Archived' },
 };
 
 function escapeHtml(s){ return String(s).replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m])); }
@@ -81,6 +82,10 @@ function renderList(){
             <button data-open="${uuid}">Open</button>
             <button class="btn-ghost" data-recap="${uuid}">Recap</button>
             <button class="btn-ghost" data-cp="${uuid}">CP PDF</button>
+            ${t.state === 'archived'
+              ? `<button class="btn-ghost" data-reopen="${uuid}">Reopen</button>`
+              : `<button class="btn-ghost" data-archive="${uuid}">Archive</button>`}
+            <button class="btn-ghost" data-del="${uuid}" title="Delete">🗑</button>
           </div>
         </div>
       </div>`;
@@ -88,13 +93,29 @@ function renderList(){
 }
 
 /* ---------- actions ---------- */
+async function threadAction(uuid, action){
+  const r = await fetch('thread_admin.php', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ thread_uuid: uuid, action })
+  });
+  const j = await r.json();
+  if(j.status === 'success'){ toast(j.message, 'success'); load(); }
+  else toast(j.message || 'Action failed', 'error');
+}
+
 $('#negList').addEventListener('click', (e)=>{
   const open  = e.target.closest('[data-open]');
   const recap = e.target.closest('[data-recap]');
   const cp    = e.target.closest('[data-cp]');
+  const arch  = e.target.closest('[data-archive]');
+  const reop  = e.target.closest('[data-reopen]');
+  const del   = e.target.closest('[data-del]');
   if(open)  location.href = 'index.html?uuid=' + encodeURIComponent(open.dataset.open);
   if(recap) window.open('generate_recap.php?uuid=' + encodeURIComponent(recap.dataset.recap), '_blank');
   if(cp)    window.open('generate_cp.php?uuid=' + encodeURIComponent(cp.dataset.cp) + '&pdf=1', '_blank');
+  if(arch)  threadAction(arch.dataset.archive, 'archive');
+  if(reop)  threadAction(reop.dataset.reopen, 'reopen');
+  if(del && confirm('Delete this negotiation and all its offers? This cannot be undone.')) threadAction(del.dataset.del, 'delete');
 });
 
 $('#btnNew').onclick = async ()=>{

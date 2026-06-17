@@ -127,6 +127,8 @@ button:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(11,111,164,.35)}
 .pill-open{background:#e6f1fb;color:var(--brand)}
 .pill-agreed{background:#dbf3ef;color:#0c8c8a}
 .pill-pending{background:#fdf0dd;color:var(--amber)}
+.pill-archived{background:#e9eef4;color:#64748b}
+.neg-card:has(.pill-archived){border-left-color:#94a3b8;opacity:.82}
 
 /* ---------- Work area: chat + activity rail ---------- */
 .work-main{display:grid;grid-template-columns:1fr 300px;min-height:0;overflow:hidden}
