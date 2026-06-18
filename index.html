@@ -77,6 +77,7 @@
       <input id="msg" placeholder="Type: start, offer, counter, accept, recap" />
       <button id="send">Send</button>
       <button id="quickOffer" class="btn-accent">Send Firm Offer</button>
+      <button id="btnAssist" class="btn-accent">✨ Assist</button>
       <button id="btnRecap" class="btn-ghost">Recap</button>
       <button id="btnRecapPDF" class="btn-ghost">Recap PDF</button>
       <button id="btnCP" class="btn-ghost">Generate CP</button>
@@ -219,7 +220,31 @@
   </div>
 </div>
 
+<!-- AI ASSIST MODAL -->
+<div class="modal" id="assistModal">
+  <div class="sheet" style="max-width:640px">
+    <header>
+      <h3>✨ CharterDesk Assist</h3>
+      <button class="btn-ghost" id="assistClose">Close</button>
+    </header>
+    <div class="body">
+      <div class="assist-tabs">
+        <button class="assist-mode active" data-mode="explain">Explain a term</button>
+        <button class="assist-mode" data-mode="draft">Draft a clause</button>
+        <button class="assist-mode" data-mode="review">Review latest offer</button>
+      </div>
+      <div id="assistInputWrap">
+        <label id="assistLabel">Term or clause to explain</label>
+        <textarea id="assistInput" rows="3" placeholder="e.g. NOR tendered WIBON, or 'Free Pratique'"></textarea>
+      </div>
+      <button id="assistRun">Run</button>
+      <div id="assistOutput" class="assist-output muted">Results will appear here.</div>
+    </div>
+  </div>
+</div>
+
 <script src="assets/js/ui.js"></script>
 <script src="assets/js/app.js"></script>
+<script src="assets/js/assist.js"></script>
 </body>
 </html>

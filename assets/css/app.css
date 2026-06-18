@@ -282,6 +282,15 @@ summary{font-weight:700;cursor:pointer;color:var(--navy)}
 .neg-actions button{padding:7px 11px;font-size:12px}
 .empty{text-align:center;color:var(--muted);padding:50px 0}
 
+/* ---------- AI Assist ---------- */
+.assist-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px}
+.assist-mode{background:#eef4fb;color:var(--muted);border:1px solid var(--line);box-shadow:none;
+  padding:8px 13px;font-size:12px;font-weight:700;border-radius:999px}
+.assist-mode:hover{filter:none;transform:none;box-shadow:none;background:#dcebf8}
+.assist-mode.active{background:var(--brand-grad);color:#fff;border-color:transparent}
+.assist-output{margin-top:6px;border:1px solid var(--line);border-radius:10px;padding:14px;
+  background:var(--panel-2);min-height:80px;max-height:320px;overflow:auto;line-height:1.55;white-space:pre-wrap}
+
 /* ---------- Responsive ---------- */
 @media (max-width:880px){
   .app{grid-template-columns:1fr;grid-template-rows:auto 1fr}
