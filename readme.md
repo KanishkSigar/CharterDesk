@@ -3,6 +3,7 @@ _A structured charter-party (CP) negotiation and document-generation tool for ma
 
 > Built during an internship at **Integrated Maritime Exchange (IME)**.
 
+[![CI](https://github.com/KanishkSigar/CharterDesk/actions/workflows/ci.yml/badge.svg)](https://github.com/KanishkSigar/CharterDesk/actions/workflows/ci.yml)
 [![Run Locally](https://img.shields.io/badge/Run-Locally-blue)](#7-running-the-application)
 [![View Recap](https://img.shields.io/badge/View-Recap-green)](#14-switching-between-html-and-pdf-recap)
 [![PDF Mode](https://img.shields.io/badge/Recap-PDF--Enabled-orange)](#14-switching-between-html-and-pdf-recap)

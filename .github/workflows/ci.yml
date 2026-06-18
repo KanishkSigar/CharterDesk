@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8
+        env:
+          MYSQL_ROOT_PASSWORD: root
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Lint PHP
+        run: |
+          php -v | head -1
+          find . -path ./vendor -prune -o -name '*.php' -print0 | xargs -0 -n1 php -l
+
+      - name: Check JS syntax
+        run: |
+          node --version
+          for f in assets/js/*.js; do node --check "$f" && echo "ok: $f"; done
+
+      - name: Install MySQL client
+        run: sudo apt-get update && sudo apt-get install -y default-mysql-client
+
+      - name: Validate SQL (schema + seed apply cleanly)
+        run: |
+          mysql -h 127.0.0.1 -uroot -proot < sql/schema.sql
+          mysql -h 127.0.0.1 -uroot -proot < sql/seed.sql
+          mysql -h 127.0.0.1 -uroot -proot -e "USE ime_negotiation; \
+            SELECT COUNT(*) AS threads FROM threads; \
+            SELECT COUNT(*) AS offers FROM offers;"
