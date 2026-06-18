@@ -26,8 +26,22 @@ terms they agree on, and export a finished **Charter Party** or **recap** as HTM
 - Locked-field system: accepted terms carry forward and are protected in counters
 - Branded **Charter Party** and **fixture recap** generation as HTML or PDF (dompdf)
 
-**Planned:** LLM-assisted clause drafting and term explanations (draft riders / force-majeure
-text, explain unfamiliar CP terms, flag unusual terms).
+**AI Assist (Claude):** an in-app assistant that **explains** unfamiliar CP terms, **drafts**
+riders/clauses from a plain-English prompt, and **reviews** the latest offer to flag unusual or
+risky terms. Backed by [`assist.php`](assist.php) calling the Claude Messages API
+(`claude-opus-4-8`). Set an `ANTHROPIC_API_KEY` before starting PHP to enable it:
+
+```bash
+# Windows (PowerShell)
+$env:ANTHROPIC_API_KEY = "sk-ant-..."
+C:\xampp\php\php.exe -S 127.0.0.1:8000 -t .
+
+# macOS / Linux
+ANTHROPIC_API_KEY=sk-ant-... php -S 127.0.0.1:8000 -t .
+```
+
+The key is read from the environment only - it is never committed. Without it, the rest of the
+app works normally and the Assist panel shows a friendly "key not set" message.
 
 ---
 
