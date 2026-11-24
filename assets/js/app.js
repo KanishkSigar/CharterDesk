@@ -648,9 +648,10 @@ async function acceptOffer(offer_id){
 
   const r = await fetch('accept_offer.php',{
     method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({offer_id, party: me})
+    body: JSON.stringify({offer_id, thread_uuid: threadUuid, party: me})
   });
   const j = await r.json();
+  if (j.status !== 'success') { alert(j.message || 'Could not accept this offer.'); await loadThread(true); return; }
   addBubble(j.message || 'Accepted.');
   if(j.recap_url){ window.open(j.recap_url,'_blank'); }
   await loadThread(true);

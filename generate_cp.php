@@ -8,12 +8,19 @@ $uuid = $_GET['uuid'] ?? '';
 if (!$uuid) { echo "Missing uuid"; exit; }
 
 $off = $pdo->prepare("SELECT party, role, version, data, accepted_by, accepted_at
-                      FROM offers WHERE thread_uuid=? ORDER BY version ASC");
+                      FROM offers WHERE thread_uuid=? ORDER BY version ASC, id ASC");
 $off->execute([$uuid]);
 $offers = $off->fetchAll();
 if (!$offers) { echo "No offers for this thread."; exit; }
 
-$latest = json_decode(end($offers)['data'] ?: '{}', true);
+$documentOffer = end($offers);
+foreach (array_reverse($offers) as $candidate) {
+  if (!empty($candidate['accepted_at'])) {
+    $documentOffer = $candidate;
+    break;
+  }
+}
+$latest = json_decode($documentOffer['data'] ?: '{}', true);
 if (!is_array($latest)) $latest = [];
 
 $parties = [];

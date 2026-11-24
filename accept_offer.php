@@ -2,22 +2,45 @@
 header('Content-Type: application/json');
 require 'db.php';
 
-$in = json_decode(file_get_contents('php://input'), true);
-$offer_id = $in['offer_id'] ?? null;
-$party    = $in['party']    ?? 'User';
-if (!$offer_id) { echo json_encode(["status"=>"error","message"=>"Missing offer_id"]); exit; }
+$input = json_decode(file_get_contents('php://input'), true);
+$offerId = filter_var($input['offer_id'] ?? null, FILTER_VALIDATE_INT);
+$uuid = $input['thread_uuid'] ?? '';
+$party = trim($input['party'] ?? '');
 
-// mark accepted
-$up = $pdo->prepare("UPDATE offers SET accepted_by=?, accepted_at=NOW() WHERE id=?");
-$ok = $up->execute([$party, (int)$offer_id]);
+if (!$offerId || !$uuid || !$party || strlen($party) > 100) {
+    http_response_code(400);
+    echo json_encode(['status' => 'error', 'message' => 'Offer, negotiation, and party are required.']);
+    exit;
+}
 
-// thread uuid for recap url
-$getU = $pdo->prepare("SELECT thread_uuid FROM offers WHERE id=?");
-$getU->execute([(int)$offer_id]);
-$uuid = $getU->fetchColumn();
+$pdo->beginTransaction();
+$thread = $pdo->prepare('SELECT id FROM threads WHERE thread_uuid = ? FOR UPDATE');
+$thread->execute([$uuid]);
+$threadId = $thread->fetchColumn();
 
-echo json_encode($ok ? [
-  "status"=>"success",
-  "message"=>"Offer accepted.",
-  "recap_url"=>"generate_recap.php?uuid=".$uuid
-] : ["status"=>"error","message"=>"Accept failed"]);
+$latest = $pdo->prepare('SELECT id, party, accepted_by FROM offers WHERE thread_uuid = ? ORDER BY version DESC, id DESC LIMIT 1');
+$latest->execute([$uuid]);
+$offer = $latest->fetch();
+
+if (!$threadId || !$offer || (int)$offer['id'] !== $offerId ||
+    strcasecmp($party, $offer['party'] ?? '') === 0 ||
+    ($offer['accepted_by'] !== null && $offer['accepted_by'] !== $party)) {
+    $pdo->rollBack();
+    http_response_code(409);
+    echo json_encode(['status' => 'error', 'message' => 'Only the counterparty can accept the current offer. Refresh the negotiation.']);
+    exit;
+}
+
+if ($offer['accepted_by'] === null) {
+    $update = $pdo->prepare('UPDATE offers SET accepted_by = ?, accepted_at = NOW() WHERE id = ?');
+    $update->execute([$party, $offerId]);
+    $status = $pdo->prepare("UPDATE threads SET status = 'agreed' WHERE id = ?");
+    $status->execute([$threadId]);
+}
+$pdo->commit();
+
+echo json_encode([
+    'status' => 'success',
+    'message' => 'Offer accepted.',
+    'recap_url' => 'generate_recap.php?uuid=' . rawurlencode($uuid),
+]);

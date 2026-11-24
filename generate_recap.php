@@ -8,12 +8,19 @@ $uuid = $_GET['uuid'] ?? '';
 if (!$uuid) { echo "Missing uuid"; exit; }
 
 $off = $pdo->prepare("SELECT party, role, version, data, accepted_by, accepted_at
-                      FROM offers WHERE thread_uuid=? ORDER BY version ASC");
+                      FROM offers WHERE thread_uuid=? ORDER BY version ASC, id ASC");
 $off->execute([$uuid]);
 $offers = $off->fetchAll();
 if (!$offers) { echo "No offers for this thread."; exit; }
 
-$latest = json_decode(end($offers)['data'] ?: '{}', true);
+$documentOffer = end($offers);
+foreach (array_reverse($offers) as $candidate) {
+  if (!empty($candidate['accepted_at'])) {
+    $documentOffer = $candidate;
+    break;
+  }
+}
+$latest = json_decode($documentOffer['data'] ?: '{}', true);
 $parties = [];
 $roles   = [];
 $accepted = false;
@@ -24,7 +31,7 @@ foreach ($offers as $o) {
   if (!isset($roles[$r])) $roles[$r] = $p;
   if (!empty($o['accepted_at'])) $accepted = true;
 }
-$latestVer = (int)end($offers)['version'];
+$latestVer = (int)$documentOffer['version'];
 
 $html = '<!doctype html><html><head><meta charset="utf-8"><title>Fixture Recap — '.htmlspecialchars($uuid).'</title>';
 $html .= '<style>
@@ -48,7 +55,7 @@ $html .= '<style>
 $html .= '</head><body>';
 $html .= '<div class="brandbar"><span class="bn">CHARTERDESK</span> &nbsp; <span class="bs">Maritime fixture negotiation</span></div>';
 $html .= '<h1>Fixture Recap</h1>';
-$html .= '<div class="muted">Thread: '.htmlspecialchars($uuid).' &nbsp;|&nbsp; Generated: '.date('Y-m-d H:i').' &nbsp;|&nbsp; Latest: v'.$latestVer.'</div>';
+$html .= '<div class="muted">Thread: '.htmlspecialchars($uuid).' &nbsp;|&nbsp; Generated: '.date('Y-m-d H:i').' &nbsp;|&nbsp; Offer: v'.$latestVer.'</div>';
 $html .= $accepted ? '<div class="status agreed">STATUS: AGREED</div>' : '<div class="status neg">STATUS: NEGOTIATING</div>';
 
 $html .= '<h2>Parties</h2>';
