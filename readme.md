@@ -70,6 +70,16 @@ app works normally and the Assist panel shows a friendly "key not set" message.
 
 ---
 
+## Local Docker demo
+
+Run `docker compose up --build` and open <http://localhost:8090/dashboard.html>.
+MariaDB loads a fictional negotiation on the first boot. Create a separate thread
+to try a new offer, counter, acceptance, and recap.
+
+The demo binds to localhost. Its current shared-thread model is intended for a
+trusted local environment. A hosted pilot requires authenticated participants
+and authorization on negotiation reads, writes, and exports.
+
 ## 2. Requirements
 
 | Tool | Purpose | Command |

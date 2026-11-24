@@ -1,0 +1,30 @@
+services:
+  web:
+    build: .
+    ports:
+      - "127.0.0.1:${CHARTERDESK_PORT:-8090}:80"
+    environment:
+      DB_HOST: db
+      DB_NAME: ime_negotiation
+      DB_USER: charterdesk
+      DB_PASS: charterdesk-local
+    depends_on:
+      db:
+        condition: service_healthy
+  db:
+    build: ./sql
+    environment:
+      MARIADB_RANDOM_ROOT_PASSWORD: "1"
+      MARIADB_DATABASE: ime_negotiation
+      MARIADB_USER: charterdesk
+      MARIADB_PASSWORD: charterdesk-local
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+    volumes:
+      - charterdesk-data:/var/lib/mysql
+
+volumes:
+  charterdesk-data:
