@@ -1,4 +1,9 @@
 <?php
+if (PHP_SAPI !== 'cli' && realpath($_SERVER['SCRIPT_FILENAME'] ?? '') === __FILE__) {
+    http_response_code(404);
+    exit;
+}
+
 // db_connect.php
 // Attempts to connect to MySQL using TCP (127.0.0.1:3306) first, then falls back to common socket paths for localhost.
 // Update $dbname, $user and $pass as needed for your environment (phpMyAdmin / XAMPP).

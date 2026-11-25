@@ -19,7 +19,7 @@ terms they agree on, and export a finished **Charter Party** or **recap** as HTM
 
 **Key Features**
 - Negotiations **dashboard** with status (Open / Negotiating / Agreed), per-thread stats and search
-- Role-based, two-party negotiation over a shared thread UUID, with live polling
+- Private, two-party negotiation with one-use invitations and live polling
 - Firm Offer -> Counter -> Accept workflow with **versioned offers**
 - Collapsible ~38-term fixture form (vessel, cargo, laycan, freight, demurrage, laytime, NOR, arbitration, CP form, ...) with **required-field validation**
 - **Version diff**: changed terms are highlighted and show their previous value, with a "show changed only" toggle
@@ -70,15 +70,36 @@ app works normally and the Assist panel shows a friendly "key not set" message.
 
 ---
 
-## Local Docker demo
+## Private pilot
 
 Run `docker compose up --build` and open <http://localhost:8090/dashboard.html>.
-MariaDB loads a fictional negotiation on the first boot. Create a separate thread
-to try a new offer, counter, acceptance, and recap.
 
-The demo binds to localhost. Its current shared-thread model is intended for a
-trusted local environment. A hosted pilot requires authenticated participants
-and authorization on negotiation reads, writes, and exports.
+1. Enter your name and create a negotiation.
+2. Open **Invite counterparty** in the workspace and send the link privately. It can be
+   redeemed once within 24 hours. Generating another link replaces an unused link.
+3. The other participant opens the link in a separate browser or private window, enters
+   their name, and joins. Each dashboard lists that browser's negotiations.
+4. Exchange an offer and a counter. The recipient of the latest offer can accept it;
+   both participants can then export the agreed recap.
+
+Access follows a browser session cookie. Keep the session volume between deploys.
+This is an invitation-based pilot with no email accounts or self-service recovery.
+Use HTTPS for a hosted pilot and set `CHARTERDESK_SECURE_COOKIE=1` on the app if a reverse
+proxy terminates TLS. Keep the invitation URL on the same hostname as the dashboard.
+
+### Existing Docker databases and sample data
+
+Apply the participant table before starting the updated app on an existing database:
+```bash
+docker compose exec -T db mariadb -u charterdesk -pcharterdesk-local ime_negotiation < sql/participants.sql
+```
+For a non-Docker install, apply the same SQL to the existing database with your normal
+database migration credentials. Existing offers and recaps are preserved and require
+authorized access. To grant the first host access to a legacy negotiation, run
+`php claim_legacy_thread.php THREAD_UUID` on the server. With Docker, try
+`docker compose exec web php claim_legacy_thread.php th_demo001` for the seeded sample.
+Open the printed relative invitation path from the application's base URL and enter the
+original creator's name. The old single-form session endpoints are retired.
 
 ## 2. Requirements
 
@@ -117,6 +138,7 @@ db.php / db_connect.php  DB connection (PDO + mysqli)
 questions.json        Fixture term definitions
 sql/
   schema.sql          Database schema (run once)
+  participants.sql    Participant and invitation schema
   seed.sql            Optional demo data
 scripts/              Dev utilities (schema migration / inspection)
 composer.json         PHP dependencies (dompdf)
@@ -127,24 +149,25 @@ readme.md             This file
 
 ## 4. Database Setup
 
-The full schema lives in [`sql/schema.sql`](sql/schema.sql). Create everything in one step:
+Install the negotiation schema and the participant table in this order:
 
 ```bash
 # from the project root
 mysql -u root < sql/schema.sql
+mysql -u root ime_negotiation < sql/participants.sql
 
 # optional: load demo data (one negotiation with an accepted counter)
 mysql -u root < sql/seed.sql
 ```
 
-Or import `sql/schema.sql` (then `sql/seed.sql`) through **phpMyAdmin**. Both target the
-`ime_negotiation` database and are safe to re-run (`CREATE ... IF NOT EXISTS`).
+For phpMyAdmin, import `sql/schema.sql`, select the `ime_negotiation` database, then import
+`sql/participants.sql`. Import `sql/seed.sql` once if you want the sample negotiation.
 
 ---
 
 ## 5. Database Connection
 
-Connection settings live in **`db_connect.php`** and are read from environment
+Connection settings for the app live in **`db.php`** and are read from environment
 variables, with XAMPP-friendly defaults for local development:
 
 | Variable | Default | Purpose |
@@ -194,8 +217,8 @@ If you see `missing zip extension`, enable `extension=zip` in `php.ini`.
 ## 8. Basic Usage
 
 ### Start / Join
-- Enter your **name** and **role**
-- Click **Start New** or **Load** (with UUID)
+- Create a negotiation from the dashboard, or open a private invitation in your browser.
+- Choose your role when drafting an offer.
 
 ### Create Offer
 - Type `offer` or click **Send Firm Offer**
@@ -220,7 +243,6 @@ offer          → open form
 counter        → counter last offer
 accept         → accept latest offer
 recap          → open recap
-load th_xxxxx  → load a thread by UUID
 ```
 
 ---
@@ -241,19 +263,12 @@ git push -u origin main
 
 ---
 
-## 11. Public Testing via Ngrok
+## 11. Hosted pilot
 
-```bash
-ngrok http 80
-```
-Share:
-```
-https://abcd-1234.ngrok-free.app/ime-negotiation/
-```
-If Apache uses port 8080:
-```
-ngrok http 8080
-```
+Use a stable HTTPS URL and scope network access to your pilot participants. Apply
+`sql/participants.sql` before deploying to an existing database. Share the invitation link
+from the workspace. The thread ID identifies the negotiation, and access requires a
+participant session.
 
 ---
 
@@ -263,9 +278,8 @@ ngrok http 8080
 |-------|--------|-----|
 | JSON parse error | PHP emitted HTML error | Check DevTools → Network |
 | View/Counter not working | Invalid JSON | Ensure `header('Content-Type: application/json')` |
-| Recap missing names | Join same UUID | Reload after login |
+| Negotiation unavailable | This browser has no session for it | Open the original browser session or a valid invitation |
 | PDF blank | Dompdf not installed | `composer require dompdf/dompdf` |
-| Thread not found | Wrong UUID | Start new negotiation |
 
 ---
 
@@ -282,7 +296,7 @@ Opens a printable web recap.
 1. Confirm Dompdf installed  
 2. Change link to:
    ```
-   generate_recap_pdf.php?uuid=<thread_uuid>
+   generate_recap.php?uuid=<thread_uuid>&pdf=1
    ```
 Downloads `fixture_recap_<uuid>.pdf` directly.  
 Switch freely between the two modes—no rebuild required.
@@ -291,11 +305,8 @@ Switch freely between the two modes—no rebuild required.
 
 ## 14. Production Recommendations
 
-- Add authentication & permissions  
-- Sanitize all user inputs  
-- Move credentials out of webroot  
-- Enable HTTPS & CSRF protection  
-- Implement rate limits and audit logging
+- Run behind HTTPS with production database credentials and persistent session storage.
+- Add rate limits and audit logging before a broader rollout.
 
 ---
 Developed by **IME Negotiation Automation Team**  

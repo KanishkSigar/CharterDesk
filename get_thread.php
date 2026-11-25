@@ -1,12 +1,13 @@
 <?php
 header('Content-Type: application/json');
+require 'access.php';
 require 'db.php';
 
-$uuid = $_GET['uuid'] ?? '';
-if (!$uuid) { echo json_encode(["status"=>"error","message"=>"Missing uuid"]); exit; }
+$uuid = fieldText($_GET['uuid'] ?? null);
+$participant = requireParticipant($pdo, $uuid);
 
 // read thread meta (locked fields + title)
-$st = $pdo->prepare("SELECT locked_fields, title FROM threads WHERE thread_uuid=?");
+$st = $pdo->prepare("SELECT locked_fields, title, status FROM threads WHERE thread_uuid=?");
 $st->execute([$uuid]);
 $row = $st->fetch();
 if (!$row) { echo json_encode(["status"=>"error","message"=>"Thread not found"]); exit; }
@@ -36,9 +37,15 @@ while ($r = $off->fetch()) {
   ];
 }
 
+$guest = $pdo->prepare("SELECT 1 FROM thread_participants WHERE thread_id = ? AND seat = 'guest' AND display_name IS NOT NULL");
+$guest->execute([$participant['thread_id']]);
+
 echo json_encode([
   "status"        => "success",
   "title"         => $title,
+  "guest_joined"  => (bool)$guest->fetchColumn(),
+  "thread_status" => $row["status"],
+  "participant"   => ["name" => $participant["display_name"], "host" => $participant["seat"] === "host"],
   "locked_fields" => $locked,
   "offers"        => $out
 ]);

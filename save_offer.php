@@ -1,15 +1,20 @@
 <?php
 header('Content-Type: application/json');
+require 'access.php';
+requirePost();
 require 'db.php';
 
 $in = json_decode(file_get_contents('php://input'), true);
-$uuid  = $in['thread_uuid'] ?? '';
-$party = $in['party']       ?? 'User';
-$role  = $in['role']        ?? 'Unknown';
-$data  = $in['data']        ?? [];
-
-if (!$uuid) { echo json_encode(["status"=>"error","message"=>"Missing uuid"]); exit; }
-if (!is_array($data)) $data = [];
+$uuid = fieldText($in['thread_uuid'] ?? null);
+$participant = requireParticipant($pdo, $uuid);
+$party = $participant['display_name'];
+$role = fieldText($in['role'] ?? null);
+$data = $in['data'] ?? null;
+if (!in_array($role, ['Ship Owner', 'Charterer', 'Buyer', 'Seller'], true) || !is_array($data)) {
+    failRequest(400, 'Choose a valid role and supply the offer terms.');
+}
+$data = array_filter($data, 'is_string');
+$data['role'] = $role;
 
 $pdo->beginTransaction();
 $sth = $pdo->prepare("SELECT id, status, locked_fields FROM threads WHERE thread_uuid=? FOR UPDATE");
@@ -17,7 +22,7 @@ $sth->execute([$uuid]);
 $thread = $sth->fetch();
 $check = $pdo->prepare("SELECT id FROM offers WHERE thread_uuid=? AND accepted_at IS NOT NULL LIMIT 1");
 $check->execute([$uuid]);
-if (!$thread || $thread['status'] === 'agreed' || $check->fetchColumn()) {
+if (!$thread || in_array($thread['status'], ['agreed', 'archived'], true) || $check->fetchColumn()) {
     $pdo->rollBack();
     http_response_code(409);
     echo json_encode(["status"=>"error","message"=>"This negotiation is unavailable or already agreed."]);

@@ -1,11 +1,12 @@
 <?php
 // generate_cp.php — richer Charter Party generator
+require 'access.php';
 require 'db.php';
 
-$uuid = $_GET['uuid'] ?? '';
+$uuid = fieldText($_GET['uuid'] ?? null);
  $asPdf = isset($_GET['pdf']) && ($_GET['pdf']=='1' || $_GET['pdf']=='true');
  $asDownload = isset($_GET['download']) && ($_GET['download']=='1' || $_GET['download']=='true');
-if (!$uuid) { echo "Missing uuid"; exit; }
+$participant = requireParticipant($pdo, $uuid);
 
 $off = $pdo->prepare("SELECT party, role, version, data, accepted_by, accepted_at
                       FROM offers WHERE thread_uuid=? ORDER BY version ASC, id ASC");

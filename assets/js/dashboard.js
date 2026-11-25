@@ -60,7 +60,7 @@ function renderList(){
 
   const pane = $('#negList');
   if(rows.length === 0){
-    pane.innerHTML = `<div class="empty">${allThreads.length ? 'No negotiations match your search.' : 'No negotiations yet — create one above.'}</div>`;
+    pane.innerHTML = `<div class="empty">${allThreads.length ? 'No negotiations match your search.' : 'No negotiations in this browser. Create one above or open a private invitation.'}</div>`;
     return;
   }
 
@@ -82,10 +82,12 @@ function renderList(){
             <button data-open="${uuid}">Open</button>
             <button class="btn-ghost" data-recap="${uuid}">Recap</button>
             <button class="btn-ghost" data-cp="${uuid}">CP PDF</button>
-            ${t.state === 'archived'
-              ? `<button class="btn-ghost" data-reopen="${uuid}">Reopen</button>`
-              : `<button class="btn-ghost" data-archive="${uuid}">Archive</button>`}
-            <button class="btn-ghost" data-del="${uuid}" title="Delete">🗑</button>
+            ${t.can_manage ? `
+              ${t.state === 'archived'
+                ? `<button class="btn-ghost" data-reopen="${uuid}">Reopen</button>`
+                : `<button class="btn-ghost" data-archive="${uuid}">Archive</button>`}
+              <button class="btn-ghost" data-del="${uuid}" title="Delete">🗑</button>
+            ` : ''}
           </div>
         </div>
       </div>`;
@@ -94,11 +96,7 @@ function renderList(){
 
 /* ---------- actions ---------- */
 async function threadAction(uuid, action){
-  const r = await fetch('thread_admin.php', {
-    method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ thread_uuid: uuid, action })
-  });
-  const j = await r.json();
+  const j = await charterPost('thread_admin.php', { thread_uuid: uuid, action });
   if(j.status === 'success'){ toast(j.message, 'success'); load(); }
   else toast(j.message || 'Action failed', 'error');
 }
@@ -122,13 +120,12 @@ $('#btnNew').onclick = async ()=>{
   const me = ($('#who').value || '').trim();
   if(!me){ alert('Enter your name first.'); return; }
   localStorage.setItem('ime_name', me);
-  const title = (prompt('Name this negotiation (e.g. Coal: Kandla to Qasim)', 'New fixture') || '').trim();
+  const title = prompt('Name this negotiation (e.g. Coal: Kandla to Qasim)', 'New fixture');
   if(title === null) return; // cancelled
   const fd = new FormData();
   fd.append('created_by', me);
-  fd.append('title', title || 'Negotiation');
-  const r = await fetch('create_thread.php', { method:'POST', body: fd });
-  const j = await r.json();
+  fd.append('title', title.trim() || 'Negotiation');
+  const j = await charterPost('create_thread.php', fd);
   if(j.status === 'success'){
     location.href = 'index.html?uuid=' + encodeURIComponent(j.thread_uuid);
   } else {

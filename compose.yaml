@@ -8,6 +8,9 @@ services:
       DB_NAME: ime_negotiation
       DB_USER: charterdesk
       DB_PASS: charterdesk-local
+      CHARTERDESK_SECURE_COOKIE: "${CHARTERDESK_SECURE_COOKIE:-0}"
+    volumes:
+      - charterdesk-sessions:/var/lib/php/sessions
     depends_on:
       db:
         condition: service_healthy
@@ -28,3 +31,4 @@ services:
 
 volumes:
   charterdesk-data:
+  charterdesk-sessions:

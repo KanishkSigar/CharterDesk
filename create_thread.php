@@ -1,33 +1,22 @@
 <?php
-include 'db_connect.php';
+header('Content-Type: application/json');
+require 'access.php';
+requirePost();
+require 'db.php';
 
-// Generate unique UUID for each new negotiation
-$uuid = 'th_' . uniqid();
-$created_by = $_POST['created_by'] ?? 'Unknown';
-$title = trim($_POST['title'] ?? '');
-if ($title === '') $title = 'Negotiation';
-$status = 'open';
-
-// Prepare and insert thread
-$stmt = $conn->prepare("INSERT INTO threads (thread_uuid, created_by, status, title, created_at) VALUES (?, ?, ?, ?, NOW())");
-$stmt->bind_param("ssss", $uuid, $created_by, $status, $title);
-
-if ($stmt->execute()) {
-    $thread_id = $stmt->insert_id; // auto-generated ID
-
-    echo json_encode([
-        'status' => 'success',
-        'message' => 'Thread created successfully',
-        'thread_id' => $thread_id,
-        'thread_uuid' => $uuid
-    ]);
-} else {
-    echo json_encode([
-        'status' => 'error',
-        'message' => 'Failed to create thread: ' . $stmt->error
-    ]);
+$name = participantName($_POST['created_by'] ?? null);
+$title = fieldText($_POST['title'] ?? null) ?: 'Negotiation';
+if (mb_strlen($title) > 160 || !mb_check_encoding($title, 'UTF-8')) {
+    failRequest(400, 'Use a title up to 160 characters.');
 }
-
-$stmt->close();
-$conn->close();
-?>
+$uuid = bin2hex(random_bytes(16));
+startCharterSession();
+$pdo->beginTransaction();
+$thread = $pdo->prepare("INSERT INTO threads (thread_uuid, created_by, title, status) VALUES (?, ?, ?, 'open')");
+$thread->execute([$uuid, $name, $title]);
+$threadId = (int)$pdo->lastInsertId();
+$participant = $pdo->prepare("INSERT INTO thread_participants (thread_id, seat, display_name) VALUES (?, 'host', ?)");
+$participant->execute([$threadId, $name]);
+$pdo->commit();
+rememberMembership($uuid, 'host');
+echo json_encode(['status' => 'success', 'thread_id' => $threadId, 'thread_uuid' => $uuid]);

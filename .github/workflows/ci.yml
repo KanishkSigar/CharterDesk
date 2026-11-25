@@ -42,7 +42,21 @@ jobs:
       - name: Validate SQL (schema + seed apply cleanly)
         run: |
           mysql -h 127.0.0.1 -uroot -proot < sql/schema.sql
+          mysql -h 127.0.0.1 -uroot -proot ime_negotiation < sql/participants.sql
           mysql -h 127.0.0.1 -uroot -proot < sql/seed.sql
           mysql -h 127.0.0.1 -uroot -proot -e "USE ime_negotiation; \
             SELECT COUNT(*) AS threads FROM threads; \
             SELECT COUNT(*) AS offers FROM offers;"
+
+      - name: Smoke-test private negotiation
+        env:
+          DB_HOST: 127.0.0.1
+          DB_USER: root
+          DB_PASS: root
+          DB_NAME: ime_negotiation
+        run: |
+          php -S 127.0.0.1:8090 >/tmp/charterdesk-php.log 2>&1 &
+          php_pid=$!
+          trap 'kill "$php_pid"; cat /tmp/charterdesk-php.log' EXIT
+          curl --fail --silent --retry 5 --retry-connrefused http://127.0.0.1:8090/dashboard.html >/dev/null
+          python3 scripts/check_pilot.py http://127.0.0.1:8090

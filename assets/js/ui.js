@@ -11,6 +11,16 @@
     return c;
   }
 
+  window.charterPost = async function (path, body) {
+    const headers = { 'X-CharterDesk-Request': '1' };
+    if (!(body instanceof FormData)) {
+      headers['Content-Type'] = 'application/json';
+      body = JSON.stringify(body);
+    }
+    const response = await fetch(path, { method: 'POST', headers, body });
+    return response.json();
+  };
+
   // toast(message, type) - type: 'info' | 'success' | 'error'
   window.toast = function (msg, type) {
     const c = container();

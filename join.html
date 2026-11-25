@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>Join a negotiation · CharterDesk</title>
+<link rel="stylesheet" href="assets/css/app.css">
+</head>
+<body>
+<main class="join-card">
+  <a href="dashboard.html">CharterDesk dashboard</a>
+  <h1>Join a private negotiation</h1>
+  <p>Your name will appear on the offers you send and accept.</p>
+  <form id="joinForm">
+    <label for="joinName">Your name</label>
+    <input id="joinName" autocomplete="name" maxlength="100" required>
+    <button type="submit">Join negotiation</button>
+  </form>
+  <p id="joinStatus" role="status"></p>
+</main>
+<script src="assets/js/ui.js"></script>
+<script src="assets/js/join.js"></script>
+</body>
+</html>

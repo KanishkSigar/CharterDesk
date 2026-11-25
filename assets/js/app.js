@@ -1,5 +1,6 @@
 /* ---------- STATE ---------- */
 let threadUuid = null;
+let participant = null;
 let offers = [];
 let lockedFields = []; // stored in threads.locked_fields
 let currentForm = {};
@@ -55,7 +56,7 @@ function addBubble(html, me=false){
 }
 function setThreadInfo(){
   if(!threadUuid){ $('#threadInfo').textContent = 'No thread yet.'; return; }
-  $('#threadInfo').textContent = threadTitle ? `${threadTitle} — ${threadUuid}` : `Thread: ${threadUuid}`;
+  $('#threadInfo').textContent = threadTitle || 'Negotiation';
 }
 
 /* ---------- STATUS BADGE + ACTIVITY TIMELINE ---------- */
@@ -122,11 +123,12 @@ function startPolling(){
       const r = await fetch('poll.php?uuid='+encodeURIComponent(threadUuid));
       const j = await r.json();
       if(j.status !== 'success') return;
-      if(lastSig === null){ lastSig = j.sig; return; }   // first tick = baseline
-      if(j.sig !== lastSig){                              // something changed -> full reload
-        lastSig = j.sig;
-        await loadThread(true);
-        addBubble('🔔 New activity detected. Updated.');
+      if(j.sig !== lastSig){
+        const changed = lastSig !== null;
+        if (await loadThread(true)) {
+          lastSig = j.sig;
+          if (changed) addBubble('🔔 New activity detected. Updated.');
+        }
       }
     }catch(e){ /* offline / server down: stay quiet */ }
   }, 4000);
@@ -137,8 +139,8 @@ function stopPolling(){ if(pollTimer){ clearInterval(pollTimer); pollTimer=null;
 function greeting(){
   $('#chat').innerHTML='';
   addBubble(`<div style="font-weight:700;font-size:18px">Welcome to CharterDesk.</div>
-  <div class="meta">Use the same Thread UUID in both browsers to negotiate live.</div>`);
-  addBubble(`Enter your name (left), choose your role, then type <b>start</b>. You can also type <b>offer</b>, <b>counter</b>, <b>accept</b>, or <b>recap</b>.`);
+  <div class="meta">Negotiations are private to the creator and the invited counterparty.</div>`);
+  addBubble(`Create a negotiation or open an invitation, then choose your role. You can also type <b>offer</b>, <b>counter</b>, <b>accept</b>, or <b>recap</b>.`);
 }
 greeting();
 
@@ -306,12 +308,7 @@ $('#btnLockFields').onclick = async ()=>{
   const selected = [...document.querySelectorAll('.lockBox:checked')].map(cb=>cb.value);
   if(selected.length===0){ alert('Select fields to accept.'); return; }
 
-  const r = await fetch('lock_fields.php',{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ thread_uuid: threadUuid, fields: selected })
-  });
-  const j = await r.json();
+  const j = await charterPost('lock_fields.php', { thread_uuid: threadUuid, fields: selected });
   if(j.status==='success'){
     lockedFields = j.locked_fields || [];
     addBubble(`🔒 Accepted terms locked: ${selected.join(', ')}`);
@@ -331,25 +328,39 @@ $('#btnNew').onclick = async ()=>{
   const fd = new FormData();
   fd.append('created_by', me);
   fd.append('title','Negotiation');
-  const r = await fetch('create_thread.php',{method:'POST', body:fd});
-  const j = await r.json();
+  const j = await charterPost('create_thread.php', fd);
   if(j.status==='success'){
-    threadUuid = j.thread_uuid; offers = []; lockedFields = [];
-    setThreadInfo(); $('#offersList').innerHTML=''; greeting(); startPolling(); refreshMeta();
-    addBubble('🆕 Thread created. Share the UUID with counterparty to join.');
+    location.href = 'index.html?uuid=' + encodeURIComponent(j.thread_uuid);
   }else alert(j.message||'Failed to create thread');
 };
 
-$('#btnLoad').onclick = async ()=>{
-  const id = $('#uuidInput').value.trim();
-  const me = ($('#who').value || '').trim();
-  if(!me){ alert('Please enter your name (left) before loading.'); return; }
-  localStorage.setItem('ime_name', me);
-  if(!id){ alert('Enter a Thread UUID'); return; }
-  threadUuid = id;
-  await loadThread();
-  greeting(); startPolling();
-  addBubble('📥 Loaded thread. You’re synced. Type “offer” or use the buttons on the left.');
+$('#btnInvite').onclick = async ()=>{
+  const button = $('#btnInvite');
+  button.disabled = true;
+  try {
+    const invite = await charterPost('invite_thread.php', { thread_uuid: threadUuid });
+    if(invite.status !== 'success'){ alert(invite.message); return; }
+    const url = new URL('join.html', location.href);
+    url.hash = invite.token;
+    $('#inviteLink').value = url.href;
+    $('#inviteDialog').showModal();
+    $('#inviteLink').select();
+  } catch {
+    alert('Could not create an invitation. Try again.');
+  } finally {
+    button.disabled = false;
+  }
+};
+
+$('#copyInvite').onclick = async ()=>{
+  const input = $('#inviteLink');
+  try {
+    await navigator.clipboard.writeText(input.value);
+    toast('Invitation copied.', 'success');
+  } catch {
+    input.select();
+    toast('Copy the selected invitation link.');
+  }
 };
 
 /* ---------- LOAD THREAD ---------- */
@@ -359,13 +370,33 @@ async function loadThread(silent=false){
   try{
     const r = await fetch('get_thread.php?uuid='+encodeURIComponent(threadUuid));
     const j = await r.json();
-    if(j.status!=='success'){ if(!silent) alert(j.message||'Load failed'); return; }
+    if(j.status!=='success'){
+      if(!silent) alert(j.message||'Load failed');
+      if (r.status === 404) {
+        stopPolling();
+        threadUuid = null;
+        participant = null;
+        offers = [];
+        lockedFields = [];
+        $('#who').readOnly = false;
+        $('#btnInvite').hidden = true;
+        setThreadInfo();
+        renderOffers();
+        refreshMeta();
+      }
+      return false;
+    }
+    participant = j.participant;
+    $('#who').value = participant.name;
+    $('#who').readOnly = true;
+    $('#btnInvite').hidden = !participant.host || j.guest_joined || ['agreed', 'archived'].includes(j.thread_status);
     offers = j.offers || [];
     lockedFields = j.locked_fields || [];
     threadTitle = j.title || '';
     setThreadInfo();
     renderOffers();
     refreshMeta();
+    return true;
   }catch(e){
     if(!silent) console.error(e);
   }
@@ -404,7 +435,8 @@ function renderOffers(){
       <div class="offer-toolbar">
         <button data-action="see" data-id="${id}">View</button>
         <button class="btn-ghost" data-action="ctr" data-id="${id}">Counter</button>
-        <button class="btn-accent" data-action="acc" data-id="${id}">Accept</button>
+        ${idx === offers.length - 1 && p !== participant?.name && !o.accepted_at
+          ? `<button class="btn-accent" data-action="acc" data-id="${id}">Accept</button>` : ''}
       </div>`;
     pane.appendChild(d);
   });
@@ -507,7 +539,7 @@ function startCounter(offer_id){
   if(!off){ alert('Offer not found (id '+offer_id+').'); return; }
 
   counterFromOfferId = offer_id;
-  currentForm = {...getOfferData(off)};
+  currentForm = {...getOfferData(off), role: $('#role').value};
   resetModalInputs(); // sets values
 
   // disable locked
@@ -585,11 +617,11 @@ $('#btnCPPDF').onclick = ()=> {
 function handleSend(){
   const txt = $('#msg').value.trim();
   if(!txt) return;
-  addBubble(txt, true);
+  addBubble(escapeHtml(txt), true);
   $('#msg').value='';
   const low = txt.toLowerCase();
   if(low==='start'){
-    addBubble('Click “New” to create a thread or “Load” to join one. Then type “offer” to open the form.');
+    addBubble('Create a negotiation or open an invitation. Then type “offer” to open the form.');
   } else if(low==='offer'){
     if(!threadUuid){ addBubble('Create or load a thread first.', false); return; }
     counterFromOfferId = null;
@@ -620,21 +652,12 @@ function openOfferFormFresh(){
 /* ---------- SAVE OFFER ---------- */
 async function saveOffer(){
   if(!threadUuid){ alert('No thread'); return; }
-  const me = ($('#who').value || '').trim() || 'User';
-  localStorage.setItem('ime_name', me);
-
   const payload = {
     thread_uuid: threadUuid,
-    party: me,
-    role: $('#role').value,
+    role: currentForm.role || $('#role').value,
     data: {...currentForm},
-    riders: currentForm.add_clause || ''
   };
-  const r = await fetch('save_offer.php',{
-    method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify(payload)
-  });
-  const j = await r.json();
+  const j = await charterPost('save_offer.php', payload);
   if(j.status==='success'){
     addBubble('📤 Offer sent.', true);
     await loadThread(true);
@@ -643,14 +666,7 @@ async function saveOffer(){
 
 /* ---------- ACCEPT OFFER ---------- */
 async function acceptOffer(offer_id){
-  const me = ($('#who').value || '').trim() || 'User';
-  localStorage.setItem('ime_name', me);
-
-  const r = await fetch('accept_offer.php',{
-    method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({offer_id, thread_uuid: threadUuid, party: me})
-  });
-  const j = await r.json();
+  const j = await charterPost('accept_offer.php', { offer_id, thread_uuid: threadUuid });
   if (j.status !== 'success') { alert(j.message || 'Could not accept this offer.'); await loadThread(true); return; }
   addBubble(j.message || 'Accepted.');
   if(j.recap_url){ window.open(j.recap_url,'_blank'); }
@@ -661,16 +677,10 @@ async function acceptOffer(offer_id){
 (async function autoLoadFromUrl(){
   const uuid = new URLSearchParams(location.search).get('uuid');
   if(!uuid) return;
-  $('#uuidInput').value = uuid;
-  const me = ($('#who').value || '').trim();
-  if(!me){
-    addBubble('Enter your name (left), then click <b>Load</b> to open this negotiation.');
-    return;
-  }
   threadUuid = uuid;
-  await loadThread();
+  if (!await loadThread()) return;
   greeting(); startPolling();
-  addBubble('📥 Opened negotiation from dashboard. You’re synced.');
+
 })();
 
 /* ---------- INITIAL META STATE ---------- */

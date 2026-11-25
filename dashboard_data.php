@@ -1,7 +1,15 @@
 <?php
 // dashboard_data.php — aggregated overview of all negotiations for the dashboard.
 header('Content-Type: application/json');
+require 'access.php';
 require 'db.php';
+
+$memberships = memberThreads();
+if (!$memberships) {
+    echo json_encode(['status' => 'success', 'threads' => []]);
+    exit;
+}
+$marks = implode(',', array_fill(0, count($memberships), '?'));
 
 $sql = "SELECT t.thread_uuid, t.created_by, t.status, t.title, t.created_at, t.locked_fields,
                COUNT(o.id) AS offer_count,
@@ -9,13 +17,16 @@ $sql = "SELECT t.thread_uuid, t.created_by, t.status, t.title, t.created_at, t.l
                COALESCE(SUM(CASE WHEN o.accepted_at IS NOT NULL THEN 1 ELSE 0 END), 0) AS accepted_count
         FROM threads t
         LEFT JOIN offers o ON o.thread_uuid = t.thread_uuid
+        WHERE t.thread_uuid IN ($marks)
         GROUP BY t.id, t.thread_uuid, t.created_by, t.status, t.title, t.created_at, t.locked_fields
         ORDER BY t.created_at DESC";
 
 try {
-    $rows = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
+    $query = $pdo->prepare($sql);
+    $query->execute(array_keys($memberships));
+    $rows = $query->fetchAll();
 } catch (Exception $e) {
-    echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
+    echo json_encode(['status' => 'error', 'message' => 'Could not load negotiations.']);
     exit;
 }
 
@@ -41,6 +52,7 @@ foreach ($rows as $r) {
         'latest_version' => (int)$r['latest_version'],
         'locked'         => count($locked),
         'state'          => $state,
+        'can_manage'     => $memberships[$r['thread_uuid']] === 'host',
     ];
 }
 

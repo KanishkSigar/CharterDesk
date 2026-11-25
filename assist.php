@@ -3,6 +3,11 @@
 // Calls Claude over raw HTTPS (PHP cURL). The API key is read from the
 // ANTHROPIC_API_KEY environment variable - it is never stored in the repo.
 header('Content-Type: application/json');
+require 'access.php';
+requirePost();
+require 'db.php';
+$in = json_decode(file_get_contents('php://input'), true) ?: [];
+requireParticipant($pdo, fieldText($in['thread_uuid'] ?? null));
 
 $apiKey = getenv('ANTHROPIC_API_KEY');
 if (!$apiKey) {
@@ -13,7 +18,6 @@ if (!$apiKey) {
     exit;
 }
 
-$in      = json_decode(file_get_contents('php://input'), true) ?: [];
 $mode    = $in['mode']    ?? '';
 $input   = trim($in['input']   ?? '');
 $context = trim($in['context'] ?? '');   // optional fixture-terms summary

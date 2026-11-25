@@ -1,26 +1,39 @@
 <?php
 // thread_admin.php - archive / reopen / delete a negotiation.
 header('Content-Type: application/json');
+require 'access.php';
+requirePost();
 require 'db.php';
 
 $in     = json_decode(file_get_contents('php://input'), true);
-$uuid   = $in['thread_uuid'] ?? '';
+$uuid   = fieldText($in['thread_uuid'] ?? null);
 $action = $in['action'] ?? '';
 
-if (!$uuid) { echo json_encode(['status'=>'error','message'=>'Missing thread_uuid']); exit; }
+requireParticipant($pdo, $uuid, true);
 
 try {
+    $pdo->beginTransaction();
+    $thread = $pdo->prepare('SELECT id FROM threads WHERE thread_uuid=? FOR UPDATE');
+    $thread->execute([$uuid]);
+    if (!$thread->fetchColumn()) {
+        $pdo->rollBack();
+        failRequest(404, 'This negotiation is unavailable.');
+    }
     if ($action === 'delete') {
         $pdo->prepare('DELETE FROM offers WHERE thread_uuid=?')->execute([$uuid]);
         $pdo->prepare('DELETE FROM threads WHERE thread_uuid=?')->execute([$uuid]);
+        $pdo->commit();
         echo json_encode(['status'=>'success','message'=>'Negotiation deleted']);
     } elseif ($action === 'archive' || $action === 'reopen') {
         $status = $action === 'archive' ? 'archived' : 'open';
         $pdo->prepare('UPDATE threads SET status=? WHERE thread_uuid=?')->execute([$status, $uuid]);
+        $pdo->commit();
         echo json_encode(['status'=>'success','message'=>"Negotiation {$action}d"]);
     } else {
-        echo json_encode(['status'=>'error','message'=>'Unknown action']);
+        $pdo->rollBack();
+        failRequest(400, 'Unknown action.');
     }
 } catch (Exception $e) {
-    echo json_encode(['status'=>'error','message'=>$e->getMessage()]);
+    if ($pdo->inTransaction()) $pdo->rollBack();
+    failRequest(500, 'Could not update this negotiation.');
 }

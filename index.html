@@ -27,10 +27,7 @@
     <div class="side-section">
       <div class="side-label">Negotiation thread</div>
       <button id="btnNew">+ New negotiation</button>
-      <div class="row">
-        <input id="uuidInput" placeholder="Thread UUID" />
-        <button class="btn-light" id="btnLoad">Load</button>
-      </div>
+      <button type="button" class="btn-light" id="btnInvite" hidden>Invite counterparty</button>
       <div class="thread-chip" id="threadInfo">No thread yet.</div>
     </div>
 
@@ -237,12 +234,21 @@
         <label id="assistLabel">Term or clause to explain</label>
         <textarea id="assistInput" rows="3" placeholder="e.g. NOR tendered WIBON, or 'Free Pratique'"></textarea>
       </div>
+      <p class="muted">Running Assist sends your prompt and any included fixture terms to Anthropic.</p>
       <button id="assistRun">Run</button>
       <div id="assistOutput" class="assist-output muted">Results will appear here.</div>
     </div>
   </div>
 </div>
 
+<dialog id="inviteDialog" class="invite-panel" aria-labelledby="inviteTitle">
+  <h2 id="inviteTitle">Invite counterparty</h2>
+  <p>Send this link privately. It works once and expires after 24 hours.</p>
+  <label for="inviteLink">Private invitation link</label>
+  <input id="inviteLink" readonly>
+  <button type="button" id="copyInvite">Copy link</button>
+  <form method="dialog"><button class="btn-ghost">Close</button></form>
+</dialog>
 <script src="assets/js/ui.js"></script>
 <script src="assets/js/app.js"></script>
 <script src="assets/js/assist.js"></script>

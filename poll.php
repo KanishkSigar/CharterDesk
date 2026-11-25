@@ -2,12 +2,15 @@
 // poll.php - tiny change-signature for a thread so the client only does a
 // full reload when something actually changed (cheaper than refetching offers).
 header('Content-Type: application/json');
+require 'access.php';
 require 'db.php';
 
-$uuid = $_GET['uuid'] ?? '';
-if (!$uuid) { echo json_encode(['status'=>'error','message'=>'Missing uuid']); exit; }
+$uuid = fieldText($_GET['uuid'] ?? null);
+$participant = requireParticipant($pdo, $uuid);
 
 $sql = "SELECT t.status, t.locked_fields,
+               EXISTS (SELECT 1 FROM thread_participants p
+                       WHERE p.thread_id = t.id AND p.seat = 'guest' AND p.display_name IS NOT NULL) AS guest_joined,
                COUNT(o.id) AS c,
                COALESCE(MAX(o.version),0) AS v,
                COALESCE(SUM(CASE WHEN o.accepted_at IS NOT NULL THEN 1 ELSE 0 END),0) AS a,
@@ -22,7 +25,7 @@ $st->execute([$uuid]);
 $r = $st->fetch();
 if (!$r) { echo json_encode(['status'=>'error','message'=>'Thread not found']); exit; }
 
-$lockedLen = strlen($r['locked_fields'] ?: '');
-$sig = implode('-', [$r['c'], $r['v'], $r['a'], $r['ts'], $lockedLen, $r['status']]);
+$lockedHash = hash('sha256', $r['locked_fields'] ?? '');
+$sig = implode('-', [$r['c'], $r['v'], $r['a'], $r['ts'], $lockedHash, $r['status'], $r['guest_joined']]);
 
 echo json_encode(['status'=>'success','sig'=>$sig]);

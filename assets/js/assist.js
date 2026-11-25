@@ -40,18 +40,15 @@
 
   $('#assistRun').onclick = async ()=>{
     const out = $('#assistOutput');
-    const payload = { mode, input: ($('#assistInput').value || '').trim(), context: '' };
+    if (!threadUuid) { toast('Open a negotiation first.', 'error'); return; }
+    const payload = { thread_uuid: threadUuid, mode, input: ($('#assistInput').value || '').trim(), context: '' };
     if (mode === 'draft' || mode === 'review') payload.context = dealContext();
     if (mode === 'review' && !payload.context){ toast('No offer terms to review yet.', 'error'); return; }
 
     out.className = 'assist-output muted';
     out.textContent = 'Thinking…';
     try {
-      const r = await fetch('assist.php', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-      const j = await r.json();
+      const j = await charterPost('assist.php', payload);
       if (j.status === 'success'){
         out.className = 'assist-output';
         out.innerHTML = esc(j.text).replace(/\n/g, '<br>');

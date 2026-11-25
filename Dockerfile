@@ -4,6 +4,8 @@ RUN apt-get update \
     && docker-php-ext-install mbstring mysqli pdo_mysql \
     && rm -rf /var/lib/apt/lists/*
 COPY --from=composer:2 /usr/bin/composer /usr/local/bin/composer
+RUN install -d -o www-data -g www-data -m 0700 /var/lib/php/sessions \
+    && printf "session.save_path=/var/lib/php/sessions\n" > /usr/local/etc/php/conf.d/charterdesk-session.ini
 WORKDIR /var/www/html
 COPY composer.json composer.lock ./
 RUN --mount=type=secret,id=composer_ca \

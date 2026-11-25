@@ -323,3 +323,23 @@ summary{font-weight:700;cursor:pointer;color:var(--navy)}
 [data-theme="dark"] .fchip{background:#10243c;color:var(--muted)}
 [data-theme="dark"] .pill-open{background:#12304d}
 [data-theme="dark"] .offer-item{background:#132943;border-color:#23425f}
+
+.join-card {
+  width: min(calc(100% - 32px), 520px);
+  margin: clamp(30px, 9vw, 100px) auto;
+  padding: clamp(18px, 5vw, 34px);
+  border: 1px solid var(--line, #dce2e8);
+  border-radius: 14px;
+}
+.join-card form { display: grid; gap: 10px; }
+.join-card form button { justify-self: start; }
+.invite-panel {
+  width: min(calc(100% - 32px), 460px);
+  border: 1px solid var(--line, #dce2e8);
+  border-radius: 14px;
+  padding: 24px;
+}
+.invite-panel::backdrop { background: #14283b80; }
+.invite-panel input { width: 100%; margin-bottom: 12px; }
+.join-card form[hidden], #btnInvite[hidden] { display: none; }
+.invite-panel { background: var(--panel); color: inherit; }
